@@ -274,7 +274,10 @@
 
 1) 对外 API：只提供 Python 风格 `snake_case`，不提供 TS 同名别名。
 2) 农历转换：参照 `ref/lunar-lite-main` 的接口与测试，在 Python 内部实现一套 `lunar_lite`（不依赖 TS 端运行时代码）。
+3) 测试框架：使用 `pytest` 覆盖核心能力（不自建测试工具），并用 `uv` 管理开发依赖。
+4) i18n：采用 Python 标准库 `gettext` 语义（通过 `NullTranslations` 的 dict 实现），并提供 `kot()` 反查以匹配 iztro 行为。
 
-仍需你确认：
+执行落地点（对齐当前代码实现）：
 
-3) i18n 是否采用 `gettext`（我建议采用）：若采用，则按 Phase C2 的方案实现 `t/kot/set_language`；若不采用，则退回“JSON/dict + 自建索引”的轻量实现。
+- i18n catalogs：从 `ref/iztro-main/src/i18n/locales/**` 生成 JSON（见 `tools/generate_iztro_i18n_catalogs.py`），运行时加载 `src/izthon/i18n/_catalogs/*.json`。
+- 测试：`uv run --extra dev pytest`（pytest 作为 dev extra）。

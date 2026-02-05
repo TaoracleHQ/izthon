@@ -260,4 +260,3 @@ class FunctionalAstrolabe:
 
     def not_surrounded(self, index_or_name: int | str, stars: list[str]) -> bool:
         return self.surrounded_palaces(index_or_name).not_have(stars)
-
