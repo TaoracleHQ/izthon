@@ -191,6 +191,15 @@ print(time_to_index(23))  # 12
 
 `gender` accepts values in any supported language (e.g. `"male"`, `"female"`, `"男"`, `"女"`), thanks to `kot()`.
 
+Note: `astrolabe.gender` is localized to the current language (default: `zh-CN`), so you may see `"男"`/`"女"` even if you pass `"male"`/`"female"`.
+
+```python
+from izthon.astro import by_solar
+
+print(by_solar("2000-8-16", 2, "female").gender)                 # 女 (default zh-CN)
+print(by_solar("2000-8-16", 2, "female", language="en-US").gender)  # female
+```
+
 ### Leap Month Fix (`fix_leap`)
 
 `fix_leap=True` follows iztro behavior for leap months:

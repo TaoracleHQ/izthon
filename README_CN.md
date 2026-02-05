@@ -195,6 +195,15 @@ print(time_to_index(23))  # 12
 
 `gender` 支持任何已内置语言的输入（例如 `"male"`/`"female"`、`"男"`/`"女"`），因为内部通过 `kot()` 做了反查归一化。
 
+注意：`astrolabe.gender` 会按当前语言进行本地化输出（默认 `zh-CN`），所以即使你传入 `"male"`/`"female"`，默认也可能看到输出为 `"男"`/`"女"`。
+
+```python
+from izthon.astro import by_solar
+
+print(by_solar("2000-8-16", 2, "female").gender)                    # 女（默认 zh-CN）
+print(by_solar("2000-8-16", 2, "female", language="en-US").gender)  # female
+```
+
 ### 闰月修正（fix_leap）
 
 `fix_leap=True` 时，会按 iztro 的逻辑处理闰月：闰月在 15 之后的日期，部分安星/定位会按“下一个月”处理（`time_index==12` 另有边界规则）。
