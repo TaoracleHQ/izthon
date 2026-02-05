@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Ported from ref/iztro-main/src/data/stars.ts
+# Ported from the upstream iztro (TypeScript) `src/data/stars.ts`.
 
 MUTAGEN = ("sihuaLu", "sihuaQuan", "sihuaKe", "sihuaJi")
 
@@ -50,4 +50,3 @@ STARS_INFO = {
     "qingyangMin": {"brightness": ["", "xian", "miao", "", "xian", "miao", "", "xian", "miao", "", "xian", "miao"]},
     "tuoluoMin": {"brightness": ["xian", "", "miao", "xian", "", "miao", "xian", "", "miao", "xian", "", "miao"]},
 }
-

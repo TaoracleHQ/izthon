@@ -1,6 +1,6 @@
 # iztro (TypeScript) -> izthon (Python) 迁移计划
 
-目标：在不依赖任何 TypeScript 运行时代码的前提下，用 Python 复刻 `ref/iztro-main`（紫微斗数排盘）与其关键依赖 `ref/lunar-lite-main`（公历/农历转换与干支计算）的全部核心能力；以 TS 源码与测试用例作为“规格”，用 Python 实现同等输出与行为。
+目标：在不依赖任何 TypeScript 运行时代码的前提下，用 Python 复刻 `iztro`（紫微斗数排盘）与其关键依赖 `lunar-lite`（公历/农历转换与干支计算）的全部核心能力；以 TS 源码与测试用例作为“规格”，用 Python 实现同等输出与行为。
 
 本计划以 `iztro@2.5.7` 与 `lunar-lite@0.2.8` 为对齐版本（见各自 `package.json`）。
 
@@ -10,14 +10,14 @@
 
 ### 0.1 需要复刻的对外 API（最小可用 + 完整对齐）
 
-对齐 `ref/iztro-main/src/index.ts` 的模块形态：
+对齐 iztro 的 `src/index.ts` 模块形态：
 
 - `data`：常量与数据表（天干地支、宫位、星耀信息、四化、五行局、五虎遁/五鼠遁、地支/天干附带信息等）。
 - `util`：索引修正、闰月修正、亮度/四化查询、干支文本格式化、流耀合并、时辰换算等。
 - `star`：主星/辅星/杂耀/装饰星（长生12、博士12、流年岁前/将前诸星、流耀等）的定位与生成。
 - `astro`：排盘入口（`by_solar`/`by_lunar`/`with_options` 等）、配置（`config/get_config`）、插件系统、重排（天地人盘）、以及围绕星盘的对象模型（星盘/宫位/星曜/三方四正/运限）。
 
-对齐 `ref/lunar-lite-main/src/index.ts` 的模块形态：
+对齐 lunar-lite 的 `src/index.ts` 模块形态：
 
 - `convertor`：`normalizeDateStr`、`solar2lunar`、`lunar2solar`
 - `ganzhi`：`getHeavenlyStemAndEarthlyBranchBySolarDate`、`getHeavenlyStemAndEarthlyBranchByLunarDate`（支持 year/month 分界配置）
@@ -25,7 +25,7 @@
 
 ### 0.2 必须对齐的行为点（来自 TS 源码/测试）
 
-来自 `ref/iztro-main/src/astro/astro.ts` / `FunctionalAstrolabe.ts` 等：
+来自 iztro 的 `src/astro/astro.ts` / `FunctionalAstrolabe.ts` 等：
 
 - `time_index` 取值 `0..12`（TS: `timeIndex`），其中 `12` 为“晚子时”。
 - 全局配置项（Python 参数名；括号内为 TS 同义项）：
@@ -38,7 +38,7 @@
 - 插件：`astro.load_plugin(some_fn)`，生成的星盘 `astrolabe.use(plugin)` 会以“this=astrolabe”的方式执行插件（TS 里用 `plugin.apply(this)`）。
 - `rearrange_astrolabe` 与 `with_options(astro_type="earth"|"human")` 的重排逻辑。
 
-来自 `ref/lunar-lite-main/src/__tests__`：
+来自 lunar-lite 的 `src/__tests__`：
 
 - 日期解析 `normalizeDateStr` 支持 `YYYY-M-D`、`YYYY-MM-DD`、`YYYY.M/D HH:mm:ss` 等混合分隔符。
 - `solar2lunar` 年份限定 `1900..2100` 且日期必须在 `1900-01-31` 之后；异常信息与边界行为以测试为准。
@@ -84,10 +84,10 @@
 ### Phase A：冻结规格与验收基线（1-2 天）
 
 1) 盘点 TS 公开 API 与关键行为：
-   - 以 `ref/iztro-main/src/index.ts`、`ref/iztro-main/src/astro/astro.ts`、`ref/iztro-main/src/star/index.ts`、`ref/lunar-lite-main/src/index.ts` 为准。
+   - 以 iztro 的 `src/index.ts`、`src/astro/astro.ts`、`src/star/index.ts` 与 lunar-lite 的 `src/index.ts` 为准。
 2) 将 TS 测试用例映射为 Python 验收用例清单：
-   - `ref/lunar-lite-main/src/__tests__/*` => `tests/test_lunar_lite_*.py`
-   - `ref/iztro-main/src/__tests__/*` => `tests/test_iztro_*.py`
+   - lunar-lite 的 `src/__tests__/*` => `tests/test_lunar_lite_*.py`
+   - iztro 的 `src/__tests__/*` => `tests/test_iztro_*.py`
 3) 选定“对齐优先级”：
    - 第一优先：计算结果（宫位、星曜分布、四化、干支、日期字符串）。
    - 第二优先：API 形态与方法名（遵循 Python `snake_case`，不做 TS 别名兼容）。
@@ -114,9 +114,9 @@
 
 #### B2. 实现策略（按 lunar-lite 规格实现，Python 内部自带）
 
-按你的要求：直接参照 `ref/lunar-lite-main` 的接口与测试用例，在 Python 内部实现同等能力（不依赖任何 TS 端运行时代码）。
+按你的要求：直接参照 lunar-lite 的接口与测试用例，在 Python 内部实现同等能力（不依赖任何 TS 端运行时代码）。
 
-注意：TS 版 `lunar-lite` 实际上依赖 `lunar-typescript` 来完成核心的历法/节气/干支计算（`ref/lunar-lite-main/src/*` 只是薄封装）。因此 Python 侧不能“逐行翻译 TS 实现”就完成迁移，需要实现其底层算法以达到相同输出。
+注意：TS 版 `lunar-lite` 实际上依赖 `lunar-typescript` 来完成核心的历法/节气/干支计算（lunar-lite 的 `src/*` 只是薄封装）。因此 Python 侧不能“逐行翻译 TS 实现”就完成迁移，需要实现其底层算法以达到相同输出。
 
 计划实现点：
 
@@ -124,16 +124,16 @@
 - 实现四柱干支：
   - 年柱：`options.year="normal"`（正月初一分界）与 `options.year="exact"`（立春分界）。
   - 月柱：`options.month="normal"`（按初一 + 闰月修正，等价于 TS 的 `calculateMonthlyGanZhi`）与 `options.month="exact"`（按节气分界）。
-  - 日柱：按基准日推算并校验（以 `ref/lunar-lite-main` 测试数据回归）。
+  - 日柱：按基准日推算并校验（以 lunar-lite 测试数据回归）。
   - 时柱：按 `time_index`（0..12）对应小时区间推算。
 
-实现原则：以 `ref/lunar-lite-main/src/__tests__/*.test.ts` 的断言作为硬基线；任何不一致都以补齐算法/边界为准，而不是“改测试/改输出”。
+实现原则：以 lunar-lite 的 `src/__tests__/*.test.ts` 断言作为硬基线；任何不一致都以补齐算法/边界为准，而不是“改测试/改输出”。
 
 （可选保底方案，需你明确同意才启用）：如果纯自研在节气精确交界时刻上出现不可接受的偏差，可考虑将一个成熟的纯 Python 历法实现以 vendoring 形式放入 `izthon/lunar_lite/_vendor/`，并在 LICENSE/NOTICE 中注明来源与许可，用它来保证与 `lunar-typescript` 的一致性。
 
 #### B3. 验收
 
-- 逐条复刻 `ref/lunar-lite-main/src/__tests__/*.test.ts` 的断言数据（尤其是 1900 边界、闰月、2026-02-05 立春分界用例）。
+- 逐条复刻 lunar-lite 的 `src/__tests__/*.test.ts` 断言数据（尤其是 1900 边界、闰月、2026-02-05 立春分界用例）。
 
 交付物：`izthon/lunar_lite/*` + pytest 测试全绿。
 
@@ -141,12 +141,12 @@
 
 #### C1. 数据表迁移
 
-从以下 TS 文件迁移为 Python 常量（保持 key 一致）：
+从以下 iztro TS 文件迁移为 Python 常量（保持 key 一致）：
 
-- `ref/iztro-main/src/data/constants.ts`
-- `ref/iztro-main/src/data/heavenlyStems.ts`
-- `ref/iztro-main/src/data/earthlyBranches.ts`
-- `ref/iztro-main/src/data/stars.ts`
+- iztro `src/data/constants.ts`
+- iztro `src/data/heavenlyStems.ts`
+- iztro `src/data/earthlyBranches.ts`
+- iztro `src/data/stars.ts`
 
 #### C2. i18n 迁移（建议使用 gettext + 自建 kot 反查）
 
@@ -154,7 +154,7 @@
 
 目标：实现与 TS `t/kot/setLanguage` 等价的能力（Python 对应：`t/kot/set_language`）。
 
-- 使用 `gettext`：将 `ref/iztro-main/src/i18n/locales/**` 的键值对转换为 `.po/.mo`（`msgid=key`, `msgstr=翻译`），并提供 `set_language(lang)` 切换当前语言。
+- 使用 `gettext`：将 iztro 的 `src/i18n/locales/**` 键值对转换为 `.po/.mo`（`msgid=key`, `msgstr=翻译`），并提供 `set_language(lang)` 切换当前语言。
 - 实现 `t(key)`：直接调用当前语言的 gettext 翻译（与 TS `t()` 等价）。
 - 实现 `kot(value, k_prefix=None)`：
   - 启动时加载所有支持语言的 catalog，构建 `value -> key` 的反查索引（按 TS 的资源遍历顺序：en-US, ja-JP, ko-KR, zh-CN, zh-TW, vi-VN）。
@@ -169,7 +169,7 @@
 
 #### D1. utils
 
-复刻 `ref/iztro-main/src/utils/index.ts`：
+复刻 iztro 的 `src/utils/index.ts`：
 
 - `fix_index`
 - `earthly_branch_index_to_palace_index`
@@ -184,7 +184,7 @@
 
 #### D2. star/location
 
-复刻 `ref/iztro-main/src/star/location.ts` 的所有索引算法：
+复刻 iztro 的 `src/star/location.ts` 的所有索引算法：
 
 - `get_start_index`（紫微/天府起星，强依赖 lunar-lite 的农历日与当月天数）
 - `get_lu_yang_tuo_ma_index / get_kui_yue_index / get_zuo_you_index / get_chang_qu_index`
@@ -194,7 +194,7 @@
 - `get_monthly_star_index`
 - `get_chang_qu_index_by_heavenly_stem`
 
-验收：移植 `ref/iztro-main/src/__tests__/star/location.test.ts`。
+验收：移植 iztro 的 `src/__tests__/star/location.test.ts`。
 
 #### D3. star 生成
 
@@ -204,11 +204,11 @@
 - `get_changsheng_12 / get_boshi_12 / get_yearly_12`
 - `get_horoscope_star`
 
-验收：移植 `ref/iztro-main/src/__tests__/star/star.test.ts`。
+验收：移植 iztro 的 `src/__tests__/star/star.test.ts`。
 
 ### Phase E：移植 astro 主流程与对象模型（4-8 天）
 
-复刻 `ref/iztro-main/src/astro/*`：
+复刻 iztro 的 `src/astro/*`：
 
 - `config/get_config/load_plugin(s)`：全局配置与插件注册。
 - `by_solar/by_lunar/with_options`：排盘入口。
@@ -226,7 +226,7 @@
   - `palace/surround_palaces/has_horoscope_stars/has_horoscope_mutagen`。
 - `FunctionalSurpalaces` 与 `analyzer`（三方四正、星曜包含判断、四化反查）。
 
-验收：移植 `ref/iztro-main/src/__tests__/astro/*.test.ts`（含多语言、插件、重排、中州派用例）。
+验收：移植 iztro 的 `src/__tests__/astro/*.test.ts`（含多语言、插件、重排、中州派用例）。
 
 ### Phase F：封装、文档与发布准备（1-3 天）
 
@@ -251,7 +251,7 @@
 
 ## 4. 里程碑与验收标准
 
-- M1（完成 Phase B）：`izthon.lunar_lite` 全部 pytest 通过（等价于 `ref/lunar-lite-main` 测试集）。
+- M1（完成 Phase B）：`izthon.lunar_lite` 全部 pytest 通过（等价于 lunar-lite 的测试集）。
 - M2（完成 Phase C+D）：星曜定位与生成的 pytest 通过（等价于 iztro 的 star/location/star 测试集）。
 - M3（完成 Phase E）：星盘生成 + 运限 + 插件 + 多语言 + 中州派全部通过（等价于 iztro 的 astro 测试集）。
 - M4（完成 Phase F）：补齐 README 与发布配置；提供最少 3 个端到端示例（solar/lunar、配置、插件）。
@@ -273,11 +273,11 @@
 已确认：
 
 1) 对外 API：只提供 Python 风格 `snake_case`，不提供 TS 同名别名。
-2) 农历转换：参照 `ref/lunar-lite-main` 的接口与测试，在 Python 内部实现一套 `lunar_lite`（不依赖 TS 端运行时代码）。
+2) 农历转换：参照 lunar-lite 的接口与测试，在 Python 内部实现一套 `lunar_lite`（不依赖 TS 端运行时代码）。
 3) 测试框架：使用 `pytest` 覆盖核心能力（不自建测试工具），并用 `uv` 管理开发依赖。
 4) i18n：采用 Python 标准库 `gettext` 语义（通过 `NullTranslations` 的 dict 实现），并提供 `kot()` 反查以匹配 iztro 行为。
 
 执行落地点（对齐当前代码实现）：
 
-- i18n catalogs：从 `ref/iztro-main/src/i18n/locales/**` 生成 JSON（见 `tools/generate_iztro_i18n_catalogs.py`），运行时加载 `src/izthon/i18n/_catalogs/*.json`。
+- i18n catalogs：从 iztro 的 `src/i18n/locales/**` 生成 JSON（见 `tools/generate_iztro_i18n_catalogs.py`），运行时加载 `src/izthon/i18n/_catalogs/*.json`。
 - 测试：`uv run --extra dev pytest`（pytest 作为 dev extra）。

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Ported from ref/iztro-main/src/data/heavenlyStems.ts
+# Ported from the upstream iztro (TypeScript) `src/data/heavenlyStems.ts`.
 
 heavenly_stems = {
     "jiaHeavenly": {
@@ -54,4 +54,3 @@ heavenly_stems = {
         "mutagen": ["pojunMaj", "jumenMaj", "taiyinMaj", "tanlangMaj"],
     },
 }
-

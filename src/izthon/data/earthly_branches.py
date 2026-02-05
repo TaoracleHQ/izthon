@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Ported from ref/iztro-main/src/data/earthlyBranches.ts
+# Ported from the upstream iztro (TypeScript) `src/data/earthlyBranches.ts`.
 
 earthly_branches = {
     "ziEarthly": {
@@ -124,4 +124,3 @@ earthly_branches = {
         "health_tip": "排泄机能障碍、肾脏、尿道、偏头痛",
     },
 }
-

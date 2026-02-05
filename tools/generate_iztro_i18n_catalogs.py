@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import json
 import re
 from pathlib import Path
@@ -40,10 +41,31 @@ def _parse_ts_default_object(path: Path) -> dict[str, str]:
     return out
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Generate iztro i18n JSON catalogs for izthon.")
+    parser.add_argument(
+        "--src-locales",
+        required=True,
+        help="Path to the upstream iztro locales directory: <iztro>/src/i18n/locales",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=str(Path(__file__).resolve().parents[1] / "src" / "izthon" / "i18n" / "_catalogs"),
+        help="Output directory for generated JSON catalogs (default: izthon's built-in catalogs dir).",
+    )
+    args = parser.parse_args(argv)
+
     repo_root = Path(__file__).resolve().parents[1]
-    src_locales = repo_root / "ref" / "iztro-main" / "src" / "i18n" / "locales"
-    out_dir = repo_root / "src" / "izthon" / "i18n" / "_catalogs"
+    src_locales = Path(args.src_locales)
+    if not src_locales.is_absolute():
+        src_locales = (repo_root / src_locales).resolve()
+    out_dir = Path(args.out_dir)
+    if not out_dir.is_absolute():
+        out_dir = (repo_root / out_dir).resolve()
+
+    if not src_locales.is_dir():
+        raise SystemExit(f"--src-locales is not a directory: {src_locales}")
+
     out_dir.mkdir(parents=True, exist_ok=True)
 
     langs = ["en-US", "ja-JP", "ko-KR", "zh-CN", "zh-TW", "vi-VN"]
@@ -75,4 +97,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

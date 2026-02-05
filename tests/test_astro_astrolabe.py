@@ -16,7 +16,7 @@ from izthon.astro import (
 
 
 def test_by_solar_basic_and_horoscope_queries():
-    # Match iztro upstream test cases (ref/iztro-main/src/__tests__/astro/astro.test.ts).
+    # Match iztro upstream test cases (`src/__tests__/astro/astro.test.ts`).
     config({"year_divide": "exact", "algorithm": "default"})
     astrolabe = by_solar("2000-8-16", 2, "女", True)
 
