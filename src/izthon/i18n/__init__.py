@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Literal
 
@@ -36,21 +38,42 @@ def _load_catalog(lang: Language) -> dict[str, str]:
 RESOURCES: dict[Language, dict[str, str]] = {lang: _load_catalog(lang) for lang in LANG_ORDER}
 _TRANSLATIONS: dict[Language, DictTranslations] = {lang: DictTranslations(RESOURCES[lang]) for lang in LANG_ORDER}
 
-_current_language: Language = "zh-CN"
+_CURRENT_LANGUAGE: ContextVar[Language] = ContextVar("izthon_language", default="zh-CN")
+
+
+def _validate_language(language: Language) -> Language:
+    if language not in LANG_ORDER:
+        raise ValueError(f"unsupported language: {language}")
+    return language
 
 
 def set_language(language: Language) -> None:
-    global _current_language
-    _current_language = language
+    _CURRENT_LANGUAGE.set(_validate_language(language))
 
 
 def get_language() -> Language:
-    return _current_language
+    return _CURRENT_LANGUAGE.get()
+
+
+@contextmanager
+def using_language(language: Language | None):
+    if language is None:
+        yield
+        return
+    token = _CURRENT_LANGUAGE.set(_validate_language(language))
+    try:
+        yield
+    finally:
+        _CURRENT_LANGUAGE.reset(token)
+
+
+def translate(key: str) -> str:
+    """Translate a key using the current language (gettext semantics)."""
+    return _TRANSLATIONS[_CURRENT_LANGUAGE.get()].gettext(key)
 
 
 def t(key: str) -> str:
-    """Translate a key using the current language (gettext semantics)."""
-    return _TRANSLATIONS[_current_language].gettext(key)
+    return translate(key)
 
 
 def kot(value: str, k_prefix: str | None = None) -> str:
@@ -61,4 +84,3 @@ def kot(value: str, k_prefix: str | None = None) -> str:
             if ((k_prefix and k_prefix in trans_key) or not k_prefix) and trans_val == value:
                 return trans_key
     return res
-

@@ -60,39 +60,28 @@ astrolabe = by_lunar("2023-2-20", time_index=4, gender="女", is_leap_month=True
 
 Entry points:
 
-- `by_solar(solar_date, time_index, gender, fix_leap=True, language=None) -> FunctionalAstrolabe`
-- `by_lunar(lunar_date, time_index, gender, is_leap_month=False, fix_leap=True, language=None) -> FunctionalAstrolabe`
-- `with_options(option: dict) -> FunctionalAstrolabe`
-  - `option["type"]`: `"solar"` | `"lunar"` (default: `"solar"`)
-  - `option["date_str"]`: date string
-  - `option["time_index"]`: `0..12`
-  - `option["gender"]`: e.g. `"male"` / `"female"` / `"男"` / `"女"`
-  - `option["is_leap_month"]`: for lunar dates
-  - `option["fix_leap"]`: leap-month fix behavior
-  - `option["language"]`: `"zh-CN"`, `"en-US"`, ...
-  - `option["astro_type"]`: `"earth"` | `"human"` (optional; for rearranged plates)
-  - `option["config"]`: a config dict (see “Global Config”)
+- `by_solar(solar_date, time_index, gender, *, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
+- `by_lunar(lunar_date, time_index, gender, *, is_leap_month=False, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
+  - `plate`: `"sky"` | `"earth"` | `"human"`
+  - `config`: per-call config patch (no cross-call leakage)
 - Helpers:
-  - `get_zodiac_by_solar_date(...)`
-  - `get_sign_by_solar_date(...)`, `get_sign_by_lunar_date(...)`
-  - `get_major_star_by_solar_date(...)`, `get_major_star_by_lunar_date(...)`
+  - `get_zodiac_by_solar_date(..., language=..., config=...)`
+  - `get_sign_by_solar_date(..., language=..., config=...)`
+  - `get_sign_by_lunar_date(..., is_leap_month=..., language=..., config=...)`
+  - `get_major_star_by_solar_date(..., fix_leap=..., language=..., config=...)`
+  - `get_major_star_by_lunar_date(..., is_leap_month=..., fix_leap=..., language=..., config=...)`
 
-### `with_options` (including earth/human plates)
+### Plate Selection (Sky / Earth / Human)
 
 ```python
-from izthon.astro import with_options
+from izthon.astro import by_solar
 
-astrolabe = with_options(
-    {
-        "type": "solar",
-        "date_str": "1979-08-21",
-        "time_index": 7,
-        "gender": "male",
-        # Optional: set config for this run (note: config is global)
-        "config": {"algorithm": "zhongzhou"},
-        # Optional: rearrange as earth/human plate
-        "astro_type": "earth",  # or "human"
-    }
+astrolabe = by_solar(
+    "1979-08-21",
+    7,
+    "male",
+    plate="earth",  # "sky" | "earth" | "human"
+    config={"algorithm": "zhongzhou"},
 )
 ```
 
@@ -108,12 +97,12 @@ from izthon.astro import (
 )
 
 print(get_zodiac_by_solar_date("2023-2-20"))                 # 兔
-print(get_zodiac_by_solar_date("2023-2-20", "en-US"))        # rabbit
+print(get_zodiac_by_solar_date("2023-2-20", language="en-US"))        # rabbit
 print(get_sign_by_solar_date("2023-9-5"))                    # 处女座
 print(get_sign_by_lunar_date("2023-2-3", is_leap_month=True))  # 白羊座 (leap month)
 
 print(get_major_star_by_solar_date("1987-05-16", 7))         # 天机,天梁
-print(get_major_star_by_lunar_date("2023-2-17", 0, True))    # 贪狼
+print(get_major_star_by_lunar_date("2023-2-17", 0, is_leap_month=True))    # 贪狼
 ```
 
 ## Core Concepts & Objects
@@ -140,8 +129,8 @@ print(ziwei.palace().name)
 
 sur = astrolabe.surrounded_palaces("命宫")
 print(sur.opposite.name, sur.wealth.name, sur.career.name)
-print(sur.have(["武曲", "贪狼"]))  # all included?
-print(sur.have_one_of(["太阳", "文曲"]))  # any included?
+print(sur.contains_stars(["武曲", "贪狼"]))  # all included?
+print(sur.contains_any_star(["太阳", "文曲"]))  # any included?
 ```
 
 ### Horoscope (Decadal/Yearly/Monthly/Daily/Hourly)
@@ -207,12 +196,12 @@ for a leap month, days after the 15th may be treated as the next month for some 
 
 ## Global Config
 
-The config is global (same as iztro). Use `izthon.astro.config()`:
+Use `set_config()` to set defaults for the current context, or pass `config=...` per call to avoid cross-call state:
 
 ```python
-from izthon.astro import config, get_config
+from izthon.astro import get_config, set_config
 
-config(
+set_config(
     {
         "year_divide": "exact",         # "normal" | "exact"
         "horoscope_divide": "exact",    # "normal" | "exact"
@@ -254,23 +243,7 @@ from izthon.i18n import set_language
 set_language("ko-KR")
 ```
 
-Note: Language state is global; call `set_language(...)` explicitly if you mix multiple languages in one process.
-
-## Plugins
-
-Plugins are global and applied to every new `FunctionalAstrolabe` instance.
-In Python, a plugin is a callable `plugin(astrolabe) -> None`.
-
-```python
-from izthon.astro import by_solar, load_plugin
-
-def my_plugin(astrolabe) -> None:
-    astrolabe.my_new_func = lambda: astrolabe.five_elements_class
-
-load_plugin(my_plugin)
-astrolabe = by_solar("2023-10-18", 4, "female")
-print(astrolabe.my_new_func())
-```
+Language is context-local and can be safely overridden per API call.
 
 ## Lunar Conversion (lunar_lite)
 
@@ -279,8 +252,8 @@ print(astrolabe.my_new_func())
 ```python
 from izthon.lunar_lite import lunar_to_solar, solar_to_lunar
 
-print(solar_to_lunar("2023-4-1").to_string(True))  # 二〇二三年闰二月十一
-print(lunar_to_solar("2023-2-11", is_leap_month=True).to_string())  # 2023-4-1
+print(solar_to_lunar("2023-4-1").to_chinese())  # 二〇二三年闰二月十一
+print(lunar_to_solar("2023-2-11", is_leap_month=True).isoformat())  # 2023-4-1
 ```
 
 ## Development

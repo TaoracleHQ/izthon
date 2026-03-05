@@ -15,21 +15,11 @@ if str(_SRC) not in sys.path:
 
 @pytest.fixture(autouse=True)
 def _reset_izthon_state():
-    """Reset global state between tests (language, config, plugins)."""
+    """Reset contextual state between tests (language/config)."""
     from izthon.i18n import set_language
-    from izthon.astro import _config
+    from izthon.astro import reset_config
 
     set_language("zh-CN")
-
-    _config._plugins.clear()
-    _config._mutagens.clear()
-    _config._brightness.clear()
-
-    _config._year_divide = "normal"
-    _config._horoscope_divide = "normal"
-    _config._age_divide = "normal"
-    _config._day_divide = "forward"
-    _config._algorithm = "default"
+    reset_config()
 
     yield
-

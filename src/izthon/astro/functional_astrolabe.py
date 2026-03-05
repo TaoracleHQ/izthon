@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date as Date, datetime
 from typing import Any
 
 from ..data import EARTHLY_BRANCHES
-from ..i18n import kot, t
+from ..i18n import kot, t, using_language
 from ..lunar_lite import get_heavenly_stem_and_earthly_branch_by_solar_date, normalize_date_str, solar_to_lunar
 from ..star import get_horoscope_star, get_yearly_12
 from ..util import fix_earthly_branch_index, fix_index, get_mutagens_by_heavenly_stem, time_to_index
 from . import analyzer
-from ._config import get_config, get_plugins
+from ._config import get_config, using_config
 from .functional_horoscope import (
     AgeHoroscopeItem,
     FunctionalHoroscope,
@@ -94,11 +94,10 @@ def _get_horoscope_by_solar_date(
         if 1 <= nominal_age <= len(childhood_seq):
             target_name = childhood_seq[nominal_age - 1]
             target_palace = astrolabe.palace(target_name)
-            if target_palace:
-                is_childhood = True
-                decadal_index = target_palace.index
-                heavenly_stem_of_decade = target_palace.heavenly_stem
-                earthly_branch_of_decade = target_palace.earthly_branch
+            is_childhood = True
+            decadal_index = target_palace.index
+            heavenly_stem_of_decade = target_palace.heavenly_stem
+            earthly_branch_of_decade = target_palace.earthly_branch
 
     age_index = -1
     heavenly_stem_of_age = "甲"
@@ -134,7 +133,7 @@ def _get_horoscope_by_solar_date(
 
     data = Horoscope(
         solar_date=solar_date,
-        lunar_date=date_lunar.to_string(True),
+        lunar_date=date_lunar.to_chinese(),
         decadal=HoroscopeItem(
             index=decadal_index,
             name=t("childhood") if is_childhood else t("decadal"),
@@ -214,18 +213,8 @@ class FunctionalAstrolabe:
     five_elements_class: str
     palaces: list["FunctionalPalace"]
     copyright: str
-
-    # Keep track of installed plugins on this instance.
-    plugins: list[Any] = None  # type: ignore[assignment]
-
-    def __post_init__(self) -> None:
-        if self.plugins is None:
-            self.plugins = []
-
-    def use(self, plugin) -> None:
-        self.plugins.append(plugin)
-        # Python plugin signature is explicit (plugin(astrolabe)).
-        plugin(self)
+    runtime_language: str = "zh-CN"
+    runtime_config: dict[str, Any] = field(default_factory=dict, repr=False)
 
     def star(self, star_name: str):
         target = None
@@ -243,20 +232,18 @@ class FunctionalAstrolabe:
         return target
 
     def horoscope(self, date: str | datetime | Date | None = None, time_index: int | None = None) -> FunctionalHoroscope:
-        return _get_horoscope_by_solar_date(self, date, time_index)
+        with using_language(self.runtime_language), using_config(self.runtime_config):
+            return _get_horoscope_by_solar_date(self, date, time_index)
 
-    def palace(self, index_or_name: int | str):
+    def palace(self, index_or_name: int | str) -> "FunctionalPalace":
         return analyzer.get_palace(self, index_or_name)
 
-    def surrounded_palaces(self, index_or_name: int | str):
+    def surrounded_palaces(self, index_or_name: int | str) -> "FunctionalSurpalaces":
         return analyzer.get_surrounded_palaces(self, index_or_name)
 
-    # Deprecated compat (snake_case)
-    def is_surrounded(self, index_or_name: int | str, stars: list[str]) -> bool:
-        return self.surrounded_palaces(index_or_name).have(stars)
 
-    def is_surrounded_one_of(self, index_or_name: int | str, stars: list[str]) -> bool:
-        return self.surrounded_palaces(index_or_name).have_one_of(stars)
+from typing import TYPE_CHECKING
 
-    def not_surrounded(self, index_or_name: int | str, stars: list[str]) -> bool:
-        return self.surrounded_palaces(index_or_name).not_have(stars)
+if TYPE_CHECKING:  # pragma: no cover
+    from .functional_palace import FunctionalPalace
+    from .functional_surpalaces import FunctionalSurpalaces

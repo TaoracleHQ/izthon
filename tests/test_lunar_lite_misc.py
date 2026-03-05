@@ -9,6 +9,7 @@ from izthon.lunar_lite.utils import fix_index
 def test_fix_index():
     assert fix_index(-1, 12) == 11
     assert fix_index(0, 12) == 0
+    assert fix_index(-0, 12) == 0
     assert fix_index(10, 12) == 10
     assert fix_index(13, 12) == 1
 
@@ -59,4 +60,3 @@ def test_get_total_days_of_lunar_month():
     assert get_total_days_of_lunar_month("2023-10-10") == 30
     assert get_total_days_of_lunar_month("2023-3-1") == 30
     assert get_total_days_of_lunar_month("2023-4-2") == 29
-

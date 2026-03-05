@@ -21,12 +21,16 @@ class LunarDate:
     lunar_day: int
     is_leap: bool
 
-    def to_string(self, to_cn_str: bool = False) -> str:
+    def isoformat(self) -> str:
+        return f"{self.lunar_year}-{self.lunar_month}-{self.lunar_day}"
+
+    def to_chinese(self) -> str:
         from .convertor import lunar_date_to_cn_string
 
-        if to_cn_str:
-            return lunar_date_to_cn_string(self)
-        return f"{self.lunar_year}-{self.lunar_month}-{self.lunar_day}"
+        return lunar_date_to_cn_string(self)
+
+    def __str__(self) -> str:
+        return self.isoformat()
 
 
 @dataclass(frozen=True)
@@ -35,8 +39,11 @@ class SolarDate:
     solar_month: int
     solar_day: int
 
-    def to_string(self) -> str:
+    def isoformat(self) -> str:
         return f"{self.solar_year}-{self.solar_month}-{self.solar_day}"
+
+    def __str__(self) -> str:
+        return self.isoformat()
 
 
 HeavenlyStemAndEarthlyBranch = tuple[str, str]
@@ -49,11 +56,10 @@ class HeavenlyStemAndEarthlyBranchDate:
     daily: HeavenlyStemAndEarthlyBranch
     hourly: HeavenlyStemAndEarthlyBranch
 
-    def to_string(self) -> str:
+    def __str__(self) -> str:
         return (
             f"{self.yearly[0]}{self.yearly[1]} "
             f"{self.monthly[0]}{self.monthly[1]} "
             f"{self.daily[0]}{self.daily[1]} "
             f"{self.hourly[0]}{self.hourly[1]}"
         )
-

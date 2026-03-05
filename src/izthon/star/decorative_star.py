@@ -9,7 +9,7 @@ from ..util import fix_earthly_branch_index, fix_index
 from .location import get_lu_yang_tuo_ma_index
 
 
-def get_changesheng_12_start_index(five_elements_class_name: str) -> int:
+def get_changsheng_12_start_index(five_elements_class_name: str) -> int:
     five_elements_class_key = kot(five_elements_class_name)
     start_idx = 0
 
@@ -63,7 +63,7 @@ def get_changsheng_12(param: dict) -> list[str]:
         "yang",
     )
 
-    start_idx = get_changesheng_12_start_index(five_elements_class)
+    start_idx = get_changsheng_12_start_index(five_elements_class)
     changsheng12: list[str] = [""] * 12
 
     same_yinyang = GENDER[gender_key] == earthly_branches[earthly_branch_of_year_key]["yin_yang"]
@@ -194,4 +194,3 @@ def get_yearly_12(solar_date: str | object) -> dict[str, list[str]]:
         jiangqian12[idx] = t(key)
 
     return {"suiqian12": suiqian12, "jiangqian12": jiangqian12}
-

@@ -105,13 +105,19 @@ class FunctionalHoroscope:
     def palace(self, palace_name: str, scope: Scope):
         if scope == "origin":
             return self.astrolabe.palace(palace_name)
-        idx = getattr(self.data, scope).palace_names.index(palace_name)
+        try:
+            idx = getattr(self.data, scope).palace_names.index(palace_name)
+        except ValueError as exc:
+            raise ValueError("invalid palace name.") from exc
         return self.astrolabe.palace(idx)
 
-    def surround_palaces(self, palace_name: str, scope: Scope):
+    def surrounded_palaces(self, palace_name: str, scope: Scope):
         if scope == "origin":
             return self.astrolabe.surrounded_palaces(palace_name)
-        idx = getattr(self.data, scope).palace_names.index(palace_name)
+        try:
+            idx = getattr(self.data, scope).palace_names.index(palace_name)
+        except ValueError as exc:
+            raise ValueError("invalid palace name.") from exc
         return self.astrolabe.surrounded_palaces(idx)
 
     def has_horoscope_stars(self, palace_name: str, scope: Scope, horoscope_star: list[str]) -> bool:
@@ -162,9 +168,6 @@ class FunctionalHoroscope:
             return False
 
         palace = self.astrolabe.palace(palace_index)
-        if not palace:
-            return False
-
         palace_star_keys = [kot(s.name) for s in [*palace.major_stars, *palace.minor_stars]]
 
         try:

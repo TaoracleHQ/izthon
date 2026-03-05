@@ -5,20 +5,23 @@ import pytest
 from izthon.astro import (
     by_lunar,
     by_solar,
-    config,
+    set_config,
     get_major_star_by_lunar_date,
     get_major_star_by_solar_date,
     get_sign_by_lunar_date,
     get_sign_by_solar_date,
     get_zodiac_by_solar_date,
-    with_options,
 )
+
+
+def _dump_horoscope_stars(stars):
+    return [[{"name": s.name, "type": s.type, "scope": s.scope} for s in group] for group in (stars or [])]
 
 
 def test_by_solar_basic_and_horoscope_queries():
     # Match iztro upstream test cases (`src/__tests__/astro/astro.test.ts`).
-    config({"year_divide": "exact", "algorithm": "default"})
-    astrolabe = by_solar("2000-8-16", 2, "女", True)
+    set_config({"year_divide": "exact", "algorithm": "default"})
+    astrolabe = by_solar("2000-8-16", 2, "女", fix_leap=True)
 
     assert astrolabe.solar_date == "2000-8-16"
     assert astrolabe.lunar_date == "二〇〇〇年七月十七"
@@ -182,7 +185,7 @@ def test_by_solar_basic_and_horoscope_queries():
     assert decadal_palace.heavenly_stem == "庚"
     assert decadal_palace.earthly_branch == "辰"
 
-    decadal_surpalaces = horoscope.surround_palaces("命宫", "decadal")
+    decadal_surpalaces = horoscope.surrounded_palaces("命宫", "decadal")
     assert decadal_surpalaces.target.name == "夫妻"
     assert decadal_surpalaces.target.heavenly_stem == "庚"
     assert decadal_surpalaces.target.earthly_branch == "辰"
@@ -196,7 +199,7 @@ def test_by_solar_basic_and_horoscope_queries():
     assert decadal_surpalaces.wealth.heavenly_stem == "戊"
     assert decadal_surpalaces.wealth.earthly_branch == "子"
 
-    original_surpalaces = horoscope.surround_palaces("夫妻", "origin")
+    original_surpalaces = horoscope.surrounded_palaces("夫妻", "origin")
     assert original_surpalaces.target.name == "夫妻"
     assert original_surpalaces.target.heavenly_stem == "庚"
     assert original_surpalaces.target.earthly_branch == "辰"
@@ -233,11 +236,15 @@ def test_by_solar_basic_and_horoscope_queries():
     horoscope2 = astrolabe.horoscope("2023-10-19 3:12")
     assert horoscope2.age.index == 9
     assert horoscope2.age.nominal_age == 24
+    age_palace2 = horoscope2.age_palace()
+    assert age_palace2.name == "仆役"
+    assert age_palace2.heavenly_stem == "丁"
+    assert age_palace2.earthly_branch == "亥"
 
 
 def test_horoscope_smoke():
-    config({"year_divide": "exact", "algorithm": "default"})
-    astrolabe = by_solar("1991-3-7", 6, "女", True)
+    set_config({"year_divide": "exact", "algorithm": "default"})
+    astrolabe = by_solar("1991-3-7", 6, "女", fix_leap=True)
     horoscope = astrolabe.horoscope("2025-3-26")
 
     assert horoscope.solar_date == "2025-3-26"
@@ -255,6 +262,560 @@ def test_horoscope_smoke():
     assert horoscope.daily.earthly_branch == "午"
 
 
+def test_by_solar_korean():
+    astrolabe = by_solar("2000-8-16", 2, "女", fix_leap=True, language="ko-KR")
+
+    assert astrolabe.solar_date == "2000-8-16"
+    assert astrolabe.lunar_date == "二〇〇〇年七月十七"
+    assert astrolabe.chinese_date == "경진 갑신 병오 경인"
+    assert astrolabe.time == "인시"
+    assert astrolabe.sign == "사자궁"
+    assert astrolabe.zodiac == "용"
+    assert astrolabe.earthly_branch_of_soul_palace == "오"
+    assert astrolabe.earthly_branch_of_body_palace == "술"
+    assert astrolabe.soul == "파군"
+    assert astrolabe.body == "문창"
+    assert astrolabe.five_elements_class == "목삼국"
+
+    horoscope = astrolabe.horoscope("2023-8-19 3:12")
+    assert horoscope.solar_date == "2023-8-19"
+    assert horoscope.decadal.index == 2
+    assert horoscope.decadal.heavenly_stem == "경"
+    assert horoscope.decadal.earthly_branch == "진"
+    assert _dump_horoscope_stars(horoscope.decadal.stars) == [
+        [{"name": "천마(십년)", "type": "tianma", "scope": "decadal"}],
+        [{"name": "문곡(십년)", "type": "soft", "scope": "decadal"}],
+        [],
+        [{"name": "천희(십년)", "type": "flower", "scope": "decadal"}],
+        [],
+        [
+            {"name": "천월(십년)", "type": "soft", "scope": "decadal"},
+            {"name": "타라(십년)", "type": "tough", "scope": "decadal"},
+        ],
+        [{"name": "록존(십년)", "type": "lucun", "scope": "decadal"}],
+        [{"name": "경양(십년)", "type": "tough", "scope": "decadal"}],
+        [],
+        [
+            {"name": "문창(십년)", "type": "soft", "scope": "decadal"},
+            {"name": "홍란(십년)", "type": "flower", "scope": "decadal"},
+        ],
+        [],
+        [{"name": "천괴(십년)", "type": "soft", "scope": "decadal"}],
+    ]
+    assert horoscope.decadal.palace_names == [
+        "부처",
+        "형제",
+        "명궁",
+        "부모",
+        "복덕",
+        "전택",
+        "관록",
+        "노복",
+        "천이",
+        "질액",
+        "재백",
+        "자녀",
+    ]
+    assert horoscope.decadal.mutagen == ["태양", "무곡", "태음", "천동"]
+    assert horoscope.age.index == 9
+    assert horoscope.age.nominal_age == 24
+    assert horoscope.yearly.index == 1
+    assert horoscope.yearly.heavenly_stem == "계"
+    assert horoscope.yearly.earthly_branch == "묘"
+    assert _dump_horoscope_stars(horoscope.yearly.stars) == [
+        [],
+        [
+            {"name": "천괴(년)", "type": "soft", "scope": "yearly"},
+            {"name": "문창(년)", "type": "soft", "scope": "yearly"},
+        ],
+        [],
+        [
+            {"name": "천월(년)", "type": "soft", "scope": "yearly"},
+            {"name": "천마(년)", "type": "tianma", "scope": "yearly"},
+        ],
+        [{"name": "천희(년)", "type": "flower", "scope": "yearly"}],
+        [{"name": "해신(년)", "type": "helper", "scope": "yearly"}],
+        [],
+        [],
+        [],
+        [
+            {"name": "문곡(년)", "type": "soft", "scope": "yearly"},
+            {"name": "타라(년)", "type": "tough", "scope": "yearly"},
+        ],
+        [
+            {"name": "록존(년)", "type": "lucun", "scope": "yearly"},
+            {"name": "홍란(년)", "type": "flower", "scope": "yearly"},
+        ],
+        [{"name": "경양(년)", "type": "tough", "scope": "yearly"}],
+    ]
+    assert horoscope.yearly.palace_names == [
+        "형제",
+        "명궁",
+        "부모",
+        "복덕",
+        "전택",
+        "관록",
+        "노복",
+        "천이",
+        "질액",
+        "재백",
+        "자녀",
+        "부처",
+    ]
+    assert horoscope.yearly.mutagen == ["파군", "거문", "태음", "탐랑"]
+    assert horoscope.monthly.index == 3
+    assert horoscope.monthly.heavenly_stem == "경"
+    assert horoscope.monthly.earthly_branch == "신"
+    assert horoscope.monthly.palace_names == [
+        "자녀",
+        "부처",
+        "형제",
+        "명궁",
+        "부모",
+        "복덕",
+        "전택",
+        "관록",
+        "노복",
+        "천이",
+        "질액",
+        "재백",
+    ]
+    assert horoscope.monthly.mutagen == ["태양", "무곡", "태음", "천동"]
+    assert horoscope.daily.index == 6
+    assert horoscope.daily.heavenly_stem == "기"
+    assert horoscope.daily.earthly_branch == "유"
+    assert horoscope.daily.palace_names == [
+        "천이",
+        "질액",
+        "재백",
+        "자녀",
+        "부처",
+        "형제",
+        "명궁",
+        "부모",
+        "복덕",
+        "전택",
+        "관록",
+        "노복",
+    ]
+    assert horoscope.daily.mutagen == ["무곡", "탐랑", "천량", "문곡"]
+    assert horoscope.hourly.index == 8
+    assert horoscope.hourly.heavenly_stem == "병"
+    assert horoscope.hourly.earthly_branch == "인"
+    assert horoscope.hourly.palace_names == [
+        "관록",
+        "노복",
+        "천이",
+        "질액",
+        "재백",
+        "자녀",
+        "부처",
+        "형제",
+        "명궁",
+        "부모",
+        "복덕",
+        "전택",
+    ]
+    assert horoscope.hourly.mutagen == ["천동", "천기", "문창", "염정"]
+
+
+def test_by_solar_vietnamese():
+    astrolabe = by_solar("2000-8-16", 2, "女", fix_leap=True, language="vi-VN")
+
+    assert astrolabe.solar_date == "2000-8-16"
+    assert astrolabe.lunar_date == "二〇〇〇年七月十七"
+    assert astrolabe.chinese_date == "Canh Thìn - Giáp Thân - Bính Ngọ - Canh Dần"
+    assert astrolabe.time == "Giờ dần"
+    assert astrolabe.sign == "Cung Sư Tử"
+    assert astrolabe.zodiac == "Rồng"
+    assert astrolabe.earthly_branch_of_soul_palace == "Ngọ"
+    assert astrolabe.earthly_branch_of_body_palace == "Tuất"
+    assert astrolabe.soul == "Phá Quân"
+    assert astrolabe.body == "Văn Xương"
+    assert astrolabe.five_elements_class == "Mộc Tam Cục"
+
+    horoscope = astrolabe.horoscope("2023-8-19 3:12")
+    assert horoscope.solar_date == "2023-8-19"
+    assert horoscope.decadal.index == 2
+    assert horoscope.decadal.heavenly_stem == "Canh"
+    assert horoscope.decadal.earthly_branch == "Thìn"
+    assert _dump_horoscope_stars(horoscope.decadal.stars) == [
+        [{"name": "Vận Mã", "type": "tianma", "scope": "decadal"}],
+        [{"name": "Vận Khúc", "type": "soft", "scope": "decadal"}],
+        [],
+        [{"name": "Vận Hỷ", "type": "flower", "scope": "decadal"}],
+        [],
+        [
+            {"name": "Vận Việt", "type": "soft", "scope": "decadal"},
+            {"name": "Vận Đà", "type": "tough", "scope": "decadal"},
+        ],
+        [{"name": "Vận Lộc", "type": "lucun", "scope": "decadal"}],
+        [{"name": "Vận Dương", "type": "tough", "scope": "decadal"}],
+        [],
+        [
+            {"name": "Vận Xương", "type": "soft", "scope": "decadal"},
+            {"name": "Vận Loan", "type": "flower", "scope": "decadal"},
+        ],
+        [],
+        [{"name": "Vận Khôi", "type": "soft", "scope": "decadal"}],
+    ]
+    assert horoscope.decadal.palace_names == [
+        "Phu Thê",
+        "Huynh Đệ",
+        "Mệnh",
+        "Phụ Mẫu",
+        "Phúc Đức",
+        "Điền Trạch",
+        "Quan Lộc",
+        "Nô Bộc",
+        "Thiên Di",
+        "Tật Ách",
+        "Tài Bạch",
+        "Tử Nữ",
+    ]
+    assert horoscope.decadal.mutagen == ["Thái Dương", "Vũ Khúc", "Thái Âm", "Thiên Đồng"]
+    assert horoscope.age.index == 9
+    assert horoscope.age.nominal_age == 24
+    assert horoscope.yearly.index == 1
+    assert horoscope.yearly.heavenly_stem == "Quý"
+    assert horoscope.yearly.earthly_branch == "Mão"
+    assert _dump_horoscope_stars(horoscope.yearly.stars) == [
+        [],
+        [
+            {"name": "Lưu Khôi", "type": "soft", "scope": "yearly"},
+            {"name": "Lưu Xương", "type": "soft", "scope": "yearly"},
+        ],
+        [],
+        [
+            {"name": "Lưu Việt", "type": "soft", "scope": "yearly"},
+            {"name": "Lưu Mã", "type": "tianma", "scope": "yearly"},
+        ],
+        [{"name": "Lưu Hỷ", "type": "flower", "scope": "yearly"}],
+        [{"name": "Niên Giải", "type": "helper", "scope": "yearly"}],
+        [],
+        [],
+        [],
+        [
+            {"name": "Lưu Khúc", "type": "soft", "scope": "yearly"},
+            {"name": "Lưu Đà", "type": "tough", "scope": "yearly"},
+        ],
+        [
+            {"name": "Lưu Lộc", "type": "lucun", "scope": "yearly"},
+            {"name": "Lưu Loan", "type": "flower", "scope": "yearly"},
+        ],
+        [{"name": "Lưu Dương", "type": "tough", "scope": "yearly"}],
+    ]
+    assert horoscope.yearly.palace_names == [
+        "Huynh Đệ",
+        "Mệnh",
+        "Phụ Mẫu",
+        "Phúc Đức",
+        "Điền Trạch",
+        "Quan Lộc",
+        "Nô Bộc",
+        "Thiên Di",
+        "Tật Ách",
+        "Tài Bạch",
+        "Tử Nữ",
+        "Phu Thê",
+    ]
+    assert horoscope.yearly.mutagen == ["Phá Quân", "Cự Môn", "Thái Âm", "Tham Lang"]
+    assert horoscope.monthly.index == 3
+    assert horoscope.monthly.heavenly_stem == "Canh"
+    assert horoscope.monthly.earthly_branch == "Thân"
+    assert horoscope.monthly.palace_names == [
+        "Tử Nữ",
+        "Phu Thê",
+        "Huynh Đệ",
+        "Mệnh",
+        "Phụ Mẫu",
+        "Phúc Đức",
+        "Điền Trạch",
+        "Quan Lộc",
+        "Nô Bộc",
+        "Thiên Di",
+        "Tật Ách",
+        "Tài Bạch",
+    ]
+    assert horoscope.monthly.mutagen == ["Thái Dương", "Vũ Khúc", "Thái Âm", "Thiên Đồng"]
+    assert horoscope.daily.index == 6
+    assert horoscope.daily.heavenly_stem == "Kỷ"
+    assert horoscope.daily.earthly_branch == "Dậu"
+    assert horoscope.daily.palace_names == [
+        "Thiên Di",
+        "Tật Ách",
+        "Tài Bạch",
+        "Tử Nữ",
+        "Phu Thê",
+        "Huynh Đệ",
+        "Mệnh",
+        "Phụ Mẫu",
+        "Phúc Đức",
+        "Điền Trạch",
+        "Quan Lộc",
+        "Nô Bộc",
+    ]
+    assert horoscope.daily.mutagen == ["Vũ Khúc", "Tham Lang", "Thiên Lương", "Văn Khúc"]
+    assert horoscope.hourly.index == 8
+    assert horoscope.hourly.heavenly_stem == "Bính"
+    assert horoscope.hourly.earthly_branch == "Dần"
+    assert horoscope.hourly.palace_names == [
+        "Quan Lộc",
+        "Nô Bộc",
+        "Thiên Di",
+        "Tật Ách",
+        "Tài Bạch",
+        "Tử Nữ",
+        "Phu Thê",
+        "Huynh Đệ",
+        "Mệnh",
+        "Phụ Mẫu",
+        "Phúc Đức",
+        "Điền Trạch",
+    ]
+    assert horoscope.hourly.mutagen == ["Thiên Đồng", "Thiên Cơ", "Văn Xương", "Liêm Trinh"]
+
+
+def test_by_lunar_basic():
+    astrolabe = by_lunar("2000-7-17", 2, "女", is_leap_month=True, fix_leap=True)
+
+    assert astrolabe.solar_date == "2000-8-16"
+    assert astrolabe.lunar_date == "二〇〇〇年七月十七"
+    assert astrolabe.chinese_date == "庚辰 甲申 丙午 庚寅"
+    assert astrolabe.time == "寅时"
+    assert astrolabe.sign == "狮子座"
+    assert astrolabe.zodiac == "龙"
+    assert astrolabe.earthly_branch_of_soul_palace == "午"
+    assert astrolabe.earthly_branch_of_body_palace == "戌"
+    assert astrolabe.soul == "破军"
+    assert astrolabe.body == "文昌"
+    assert astrolabe.five_elements_class == "木三局"
+    assert len(astrolabe.palaces) == 12
+    assert astrolabe.palaces[0].decadal.range == (43, 52)
+    assert astrolabe.palaces[0].decadal.heavenly_stem == "戊"
+    assert astrolabe.palaces[0].decadal.earthly_branch == "寅"
+    assert astrolabe.palaces[11].decadal.range == (53, 62)
+    assert astrolabe.palaces[11].decadal.heavenly_stem == "己"
+    assert astrolabe.palaces[11].decadal.earthly_branch == "丑"
+
+
+def test_by_lunar_with_exact_year_divider():
+    set_config({"year_divide": "exact"})
+    astrolabe = by_lunar("1999-12-29", 2, "女", is_leap_month=True, fix_leap=True)
+
+    assert astrolabe.solar_date == "2000-2-4"
+    assert astrolabe.lunar_date == "一九九九年腊月廿九"
+    assert astrolabe.chinese_date == "庚辰 己丑 壬辰 壬寅"
+    assert astrolabe.time == "寅时"
+    assert astrolabe.zodiac == "龙"
+    assert astrolabe.earthly_branch_of_soul_palace == "亥"
+    assert astrolabe.earthly_branch_of_body_palace == "卯"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "文昌"
+    assert astrolabe.five_elements_class == "土五局"
+
+
+def test_by_lunar_with_normal_year_divider():
+    set_config({"year_divide": "normal"})
+    astrolabe = by_lunar("1999-12-29", 2, "女", is_leap_month=True, fix_leap=True)
+
+    assert astrolabe.solar_date == "2000-2-4"
+    assert astrolabe.lunar_date == "一九九九年腊月廿九"
+    assert astrolabe.chinese_date == "己卯 丁丑 壬辰 壬寅"
+    assert astrolabe.time == "寅时"
+    assert astrolabe.zodiac == "兔"
+    assert astrolabe.earthly_branch_of_soul_palace == "亥"
+    assert astrolabe.earthly_branch_of_body_palace == "卯"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "火六局"
+
+
+def test_by_solar_with_normal_year_divider():
+    set_config({"year_divide": "normal", "horoscope_divide": "normal"})
+    astrolabe = by_solar("1980-2-14", 0, "male", fix_leap=True)
+
+    assert astrolabe.solar_date == "1980-2-14"
+    assert astrolabe.lunar_date == "一九七九年腊月廿八"
+    assert astrolabe.chinese_date == "己未 丁丑 丁巳 庚子"
+    assert astrolabe.time == "早子时"
+    assert astrolabe.zodiac == "羊"
+    assert astrolabe.earthly_branch_of_soul_palace == "丑"
+    assert astrolabe.earthly_branch_of_body_palace == "丑"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "天相"
+    assert astrolabe.five_elements_class == "水二局"
+    assert astrolabe.palaces[0].decadal.range == (112, 121)
+
+    horoscope = astrolabe.horoscope("1980-2-14")
+    assert horoscope.yearly.earthly_branch == "未"
+    assert horoscope.yearly.heavenly_stem == "己"
+
+
+def test_special_date_1995_3_30():
+    set_config({"year_divide": "normal"})
+    astrolabe = by_solar("1995-03-30", 0, "male", fix_leap=True)
+    assert astrolabe.solar_date == "1995-03-30"
+    assert astrolabe.lunar_date == "一九九五年二月三十"
+
+    astrolabe2 = by_lunar("1995-2-30", 0, "male", is_leap_month=True)
+    assert astrolabe2.solar_date == "1995-3-30"
+    assert astrolabe2.lunar_date == "一九九五年二月三十"
+
+
+def test_by_lunar_with_per_call_year_divide_normal():
+    astrolabe = by_lunar(
+        "1999-12-29",
+        2,
+        "female",
+        is_leap_month=False,
+        fix_leap=True,
+        language="zh-CN",
+        config={"year_divide": "normal"},
+    )
+    assert astrolabe.solar_date == "2000-2-4"
+    assert astrolabe.lunar_date == "一九九九年腊月廿九"
+    assert astrolabe.chinese_date == "己卯 丁丑 壬辰 壬寅"
+    assert astrolabe.time == "寅时"
+    assert astrolabe.zodiac == "兔"
+    assert astrolabe.earthly_branch_of_soul_palace == "亥"
+    assert astrolabe.earthly_branch_of_body_palace == "卯"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "火六局"
+
+
+def test_by_solar_with_per_call_day_divide_current():
+    astrolabe = by_solar(
+        "1987-9-23",
+        12,
+        "female",
+        fix_leap=True,
+        language="zh-CN",
+        config={"year_divide": "normal", "day_divide": "current"},
+    )
+    assert astrolabe.solar_date == "1987-9-23"
+    assert astrolabe.lunar_date == "一九八七年八月初一"
+    assert astrolabe.chinese_date == "丁卯 己酉 丙子 戊子"
+    assert astrolabe.time == "晚子时"
+    assert astrolabe.zodiac == "兔"
+    assert astrolabe.earthly_branch_of_soul_palace == "酉"
+    assert astrolabe.earthly_branch_of_body_palace == "酉"
+    assert astrolabe.soul == "文曲"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "土五局"
+    assert astrolabe.palace("命宫").index == 7
+    assert astrolabe.palace("命宫").is_empty() is True
+    assert astrolabe.palace("命宫").contains_stars(["火星", "天钺"]) is True
+    assert astrolabe.palace("迁移").contains_stars(["太阳", "天梁", "右弼", "八座", "天贵", "空亡", "天哭"]) is True
+
+
+def test_by_lunar_with_exact_dividers():
+    astrolabe = by_lunar(
+        "1999-12-29",
+        2,
+        "female",
+        is_leap_month=False,
+        fix_leap=True,
+        language="zh-CN",
+        config={"year_divide": "exact", "horoscope_divide": "exact"},
+    )
+    assert astrolabe.solar_date == "2000-2-4"
+    assert astrolabe.lunar_date == "一九九九年腊月廿九"
+    assert astrolabe.chinese_date == "庚辰 丁丑 壬辰 壬寅"
+    assert astrolabe.time == "寅时"
+    assert astrolabe.zodiac == "龙"
+    assert astrolabe.earthly_branch_of_soul_palace == "亥"
+    assert astrolabe.earthly_branch_of_body_palace == "卯"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "文昌"
+    assert astrolabe.five_elements_class == "土五局"
+
+
+def test_by_lunar_with_per_call_horoscope_divide():
+    astrolabe = by_lunar(
+        "1979-12-28",
+        0,
+        "female",
+        is_leap_month=False,
+        fix_leap=True,
+        language="zh-CN",
+        config={"year_divide": "normal", "horoscope_divide": "normal"},
+    )
+    assert astrolabe.solar_date == "1980-2-14"
+    assert astrolabe.lunar_date == "一九七九年腊月廿八"
+    assert astrolabe.chinese_date == "己未 丁丑 丁巳 庚子"
+    assert astrolabe.time == "早子时"
+    assert astrolabe.zodiac == "羊"
+    assert astrolabe.earthly_branch_of_soul_palace == "丑"
+    assert astrolabe.earthly_branch_of_body_palace == "丑"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "天相"
+    assert astrolabe.five_elements_class == "水二局"
+    assert astrolabe.horoscope("1980-2-14").yearly.earthly_branch == "未"
+
+    astrolabe2 = by_lunar(
+        "1979-12-28",
+        0,
+        "female",
+        is_leap_month=False,
+        fix_leap=True,
+        language="zh-CN",
+        config={"year_divide": "normal", "horoscope_divide": "exact"},
+    )
+    assert astrolabe2.horoscope("1980-2-14").yearly.earthly_branch == "申"
+
+
+def test_by_solar_fix_leap_month():
+    astrolabe = by_solar("2023-4-10", 4, "女", fix_leap=True)
+    assert astrolabe.earthly_branch_of_soul_palace == "子"
+    assert astrolabe.earthly_branch_of_body_palace == "申"
+    assert astrolabe.soul == "贪狼"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "金四局"
+    assert astrolabe.star("紫微").palace().name == "迁移"
+
+
+def test_by_solar_default_fix_leap_month():
+    astrolabe = by_solar("2023-4-10", 4, "女")
+    assert astrolabe.earthly_branch_of_soul_palace == "子"
+    assert astrolabe.earthly_branch_of_body_palace == "申"
+    assert astrolabe.soul == "贪狼"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "金四局"
+    assert astrolabe.star("紫微").palace().name == "迁移"
+
+
+def test_by_solar_do_not_fix_leap_month():
+    astrolabe = by_solar("2023-4-10", 4, "女", fix_leap=False)
+    assert astrolabe.earthly_branch_of_soul_palace == "亥"
+    assert astrolabe.earthly_branch_of_body_palace == "未"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "水二局"
+    assert astrolabe.star("紫微").palace().name == "命宫"
+
+
+def test_by_lunar_fix_leap_month():
+    astrolabe = by_lunar("2023-2-20", 4, "女", is_leap_month=True, fix_leap=True)
+    assert astrolabe.earthly_branch_of_soul_palace == "子"
+    assert astrolabe.earthly_branch_of_body_palace == "申"
+    assert astrolabe.soul == "贪狼"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "金四局"
+    assert astrolabe.star("紫微").palace().name == "迁移"
+
+
+def test_by_lunar_default_is_leap_month():
+    astrolabe = by_lunar("2023-2-20", 4, "女")
+    assert astrolabe.earthly_branch_of_soul_palace == "亥"
+    assert astrolabe.earthly_branch_of_body_palace == "未"
+    assert astrolabe.soul == "巨门"
+    assert astrolabe.body == "天同"
+    assert astrolabe.five_elements_class == "水二局"
+    assert astrolabe.star("紫微").palace().name == "命宫"
+
+
 @pytest.mark.parametrize(
     ("language", "expected_chinese_date"),
     [
@@ -263,7 +824,7 @@ def test_horoscope_smoke():
     ],
 )
 def test_by_solar_multilanguage_chinese_date(language: str, expected_chinese_date: str):
-    astrolabe = by_solar("2000-8-16", 2, "女", True, language)
+    astrolabe = by_solar("2000-8-16", 2, "女", fix_leap=True, language=language)
     assert astrolabe.chinese_date == expected_chinese_date
 
 
@@ -281,30 +842,30 @@ def test_by_lunar_do_not_fix_leap_month():
 
 def test_get_zodiac_by_solar_date():
     assert get_zodiac_by_solar_date("2023-2-20") == "兔"
-    assert get_zodiac_by_solar_date("2023-2-20", "en-US") == "rabbit"
+    assert get_zodiac_by_solar_date("2023-2-20", language="en-US") == "rabbit"
 
 
 def test_get_sign_by_solar_date():
     assert get_sign_by_solar_date("2023-9-5") == "处女座"
-    assert get_sign_by_solar_date("2023-9-5", "en-US") == "virgo"
+    assert get_sign_by_solar_date("2023-9-5", language="en-US") == "virgo"
 
 
 def test_get_sign_by_lunar_date():
     assert get_sign_by_lunar_date("2023-7-21") == "处女座"
-    assert get_sign_by_lunar_date("2023-7-21", False, "en-US") == "virgo"
+    assert get_sign_by_lunar_date("2023-7-21", is_leap_month=False, language="en-US") == "virgo"
 
 
 def test_get_sign_by_lunar_date_leap_month():
     # Leap lunar month affects sign mapping.
     assert get_sign_by_lunar_date("2023-2-3") == "双鱼座"
-    assert get_sign_by_lunar_date("2023-2-3", True) == "白羊座"
+    assert get_sign_by_lunar_date("2023-2-3", is_leap_month=True) == "白羊座"
 
 
 def test_get_major_star_by_solar_date_leap_month():
     # Leap month fixes affect major-star lookup.
     assert get_major_star_by_solar_date("2023-4-7", 0) == "贪狼"
-    assert get_major_star_by_solar_date("2023-4-7", 0, False) == "紫微,贪狼"
-    assert get_major_star_by_solar_date("2023-4-7", 0, True, "ko-KR") == "탐랑"
+    assert get_major_star_by_solar_date("2023-4-7", 0, fix_leap=False) == "紫微,贪狼"
+    assert get_major_star_by_solar_date("2023-4-7", 0, fix_leap=True, language="ko-KR") == "탐랑"
 
 
 def test_get_major_star_by_solar_date():
@@ -313,8 +874,8 @@ def test_get_major_star_by_solar_date():
 
 def test_get_major_star_by_lunar_date_leap_month():
     assert get_major_star_by_lunar_date("2023-2-17", 0) == "紫微,贪狼"
-    assert get_major_star_by_lunar_date("2023-2-17", 0, True) == "贪狼"
-    assert get_major_star_by_lunar_date("2023-2-17", 0, True, False) == "紫微,贪狼"
+    assert get_major_star_by_lunar_date("2023-2-17", 0, is_leap_month=True) == "贪狼"
+    assert get_major_star_by_lunar_date("2023-2-17", 0, is_leap_month=True, fix_leap=False) == "紫微,贪狼"
 
 
 def test_childhood_decadal_name_and_index():
@@ -334,28 +895,12 @@ def test_childhood_decadal_name_and_index():
 
 
 def test_nominal_age_divide_normal_vs_birthday():
-    astrolabe1 = with_options(
-        {
-            "type": "solar",
-            "date_str": "2000-8-16",
-            "time_index": 2,
-            "gender": "female",
-            "config": {"age_divide": "normal"},
-        }
-    )
+    astrolabe1 = by_solar("2000-8-16", 2, "female", config={"age_divide": "normal"})
     horo1 = astrolabe1.horoscope("2023-8-19 3:12")
     assert horo1.age.index == 9
     assert horo1.age.nominal_age == 24
 
-    astrolabe2 = with_options(
-        {
-            "type": "solar",
-            "date_str": "2000-8-16",
-            "time_index": 2,
-            "gender": "female",
-            "config": {"age_divide": "birthday"},
-        }
-    )
+    astrolabe2 = by_solar("2000-8-16", 2, "female", config={"age_divide": "birthday"})
     horo2 = astrolabe2.horoscope("2023-8-19 3:12")
     assert horo2.age.index == 10
     assert horo2.age.nominal_age == 23

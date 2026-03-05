@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from izthon.astro import with_options
+from izthon.astro import by_solar
 from izthon.star import (
     get_chang_qu_index,
     get_chang_qu_index_by_heavenly_stem,
@@ -28,42 +28,18 @@ def test_get_dahao_index():
 
 
 def test_santai_bazuo_for_lunar_month():
-    res = with_options(
-        {
-            "type": "solar",
-            "date_str": "1979-08-21",
-            "time_index": 6,
-            "gender": "male",
-            "language": "zh-CN",
-        }
-    )
+    res = by_solar("1979-08-21", 6, "male", language="zh-CN")
     assert res.star("三台").palace().index == 0
     assert res.star("八座").palace().index == 10
 
 
 def test_xunkong_for_yin_year():
-    res = with_options(
-        {
-            "type": "solar",
-            "date_str": "1979-08-21",
-            "time_index": 6,
-            "gender": "male",
-            "language": "zh-CN",
-        }
-    )
+    res = by_solar("1979-08-21", 6, "male", language="zh-CN")
     assert res.star("旬空").palace().index == 11
 
 
 def test_xunkong_for_yang_year():
-    res = with_options(
-        {
-            "type": "solar",
-            "date_str": "1980-08-21",
-            "time_index": 6,
-            "gender": "male",
-            "language": "zh-CN",
-        }
-    )
+    res = by_solar("1980-08-21", 6, "male", language="zh-CN")
     assert res.star("旬空").palace().index == 10
 
 
@@ -404,4 +380,3 @@ def test_get_gu_gua_index():
     }
     for k, v in cases.items():
         assert get_gu_gua_index(k) == v
-

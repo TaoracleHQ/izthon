@@ -43,23 +43,17 @@ def _include_mutagen(stars: Iterable["FunctionalStar"], mutagen: str) -> bool:
 
 def get_surrounded_palaces(astrolabe: "FunctionalAstrolabe", index_or_name: int | str) -> "FunctionalSurpalaces":
     palace = get_palace(astrolabe, index_or_name)
-    if palace is None:
-        raise ValueError("index_or_name is incorrect.")
-
     palace_index = fix_earthly_branch_index(palace.earthly_branch)
     opposite = get_palace(astrolabe, fix_index(palace_index + 6))
     career = get_palace(astrolabe, fix_index(palace_index + 4))
     wealth = get_palace(astrolabe, fix_index(palace_index + 8))
-
-    if not opposite or not career or not wealth:
-        raise ValueError("index_or_name is incorrect.")
 
     from .functional_surpalaces import FunctionalSurpalaces
 
     return FunctionalSurpalaces(target=palace, opposite=opposite, wealth=wealth, career=career)
 
 
-def get_palace(astrolabe: "FunctionalAstrolabe", index_or_name: int | str) -> "FunctionalPalace | None":
+def get_palace(astrolabe: "FunctionalAstrolabe", index_or_name: int | str) -> "FunctionalPalace":
     palace: FunctionalPalace | None = None
 
     if isinstance(index_or_name, int):
@@ -79,8 +73,9 @@ def get_palace(astrolabe: "FunctionalAstrolabe", index_or_name: int | str) -> "F
                 palace = item
                 break
 
-    if palace:
-        palace.set_astrolabe(astrolabe)
+    if palace is None:
+        raise ValueError("invalid palace name.")
+    palace.set_astrolabe(astrolabe)
     return palace
 
 

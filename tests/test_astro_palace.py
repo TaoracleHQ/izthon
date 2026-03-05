@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from izthon.astro import by_solar, config, get_five_elements_class, get_horoscope, get_palace_names, get_soul_and_body
+from izthon.astro import by_solar, set_config, get_five_elements_class, get_horoscope, get_palace_names, get_soul_and_body
 
 
 def test_get_soul_and_body():
-    config({"year_divide": "exact"})
+    set_config({"year_divide": "exact"})
 
     cases = [
         (

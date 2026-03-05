@@ -32,11 +32,10 @@ def _as_datetime(value: str | datetime) -> datetime:
 
 
 def _solar_term_dt_cn(year: int, term_index: int) -> datetime:
-    # Widely used approximation: epoch UTC 1900-01-06 02:05 plus tropical year milliseconds.
-    base_utc = datetime(1900, 1, 6, 2, 5, tzinfo=timezone.utc)
+    # Widely used approximation with a CN-local epoch (same baseline used by lunar-lite/lunar-typescript).
+    base_cn = datetime(1900, 1, 6, 2, 5, tzinfo=_TZ_CN)
     ms = (year - 1900) * 31556925974.7 + S_TERM_INFO_MINUTES[term_index] * 60000
-    dt_utc = base_utc + timedelta(milliseconds=ms)
-    return dt_utc.astimezone(_TZ_CN)
+    return base_cn + timedelta(milliseconds=ms)
 
 
 def _year_ganzhi(year: int) -> tuple[str, str]:
@@ -47,6 +46,13 @@ def _year_ganzhi(year: int) -> tuple[str, str]:
 
 def _year_by_lichun(dt: datetime) -> int:
     # LiChun is the 3rd solar term in the common list (index 2).
+    # Match lunar-typescript's getYearGanByLiChun()/getYearZhiByLiChun(): compare date only.
+    lichun = _solar_term_dt_cn(dt.year, 2)
+    return dt.year if dt.date() >= lichun.date() else dt.year - 1
+
+
+def _year_by_lichun_exact(dt: datetime) -> int:
+    # Exact boundary used by month exact calculation in lunar-typescript.
     lichun = _solar_term_dt_cn(dt.year, 2)
     return dt.year if dt >= lichun else dt.year - 1
 
@@ -81,7 +87,7 @@ def _month_ganzhi_exact(dt: datetime) -> tuple[str, str]:
     month_index = start[1]  # 0..11, aligned with MONTHLY_EARTHLY_BRANCHES
 
     # Month heavenly stem is derived from the LiChun-based year heavenly stem.
-    year_for_month = _year_by_lichun(dt)
+    year_for_month = _year_by_lichun_exact(dt)
     year_gan, _ = _year_ganzhi(year_for_month)
     start_gan = FIVE_TIGER[HEAVENLY_STEMS.index(year_gan)]
     gan = HEAVENLY_STEMS[fix_index(HEAVENLY_STEMS.index(start_gan) + month_index, 10)]
@@ -195,8 +201,7 @@ def get_heavenly_stem_and_earthly_branch_by_lunar_date(
 ) -> HeavenlyStemAndEarthlyBranchDate:
     solar = lunar_to_solar(date_str, is_leap)
     return get_heavenly_stem_and_earthly_branch_by_solar_date(
-        solar.to_string(),
+        solar.isoformat(),
         time_index,
         options if options is not None else {"year": "normal", "month": "exact"},
     )
-

@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from izthon.astro import config
+from izthon.astro import set_config
 from izthon.i18n import set_language
 from izthon.star import (
     get_adjective_star,
     get_boshi_12,
-    get_changesheng_12_start_index,
+    get_changsheng_12_start_index,
     get_changsheng_12,
     get_horoscope_star,
     get_jiangqian12_start_index,
@@ -57,7 +57,7 @@ def _dump_star_props(stars):
 
 
 def test_get_major_star():
-    config({"year_divide": "exact"})
+    set_config({"year_divide": "exact"})
     res = get_major_star({"solar_date": "2023-03-06", "time_index": 4, "fix_leap": True})
     assert _dump_star_props(res) == [
         [{"name": "七杀", "type": "major", "brightness": "庙", "scope": "origin", "mutagen": ""}],
@@ -83,7 +83,7 @@ def test_get_major_star():
 
 def test_get_major_star_vi_vn():
     set_language("vi-VN")
-    config({"year_divide": "exact"})
+    set_config({"year_divide": "exact"})
     res = get_major_star({"solar_date": "2023-03-06", "time_index": 4, "fix_leap": True})
     assert _dump_star_props(res) == [
         [{"name": "Thất Sát", "type": "major", "brightness": "Miếu", "scope": "origin", "mutagen": ""}],
@@ -267,10 +267,10 @@ def test_get_horoscope_star_yearly():
     ]
 
 
-def test_get_changesheng_12_start_index():
+def test_get_changsheng_12_start_index():
     cases = {"水二局": 6, "木三局": 9, "金四局": 3, "土五局": 6, "火六局": 0}
     for k, v in cases.items():
-        assert get_changesheng_12_start_index(k) == v
+        assert get_changsheng_12_start_index(k) == v
 
 
 def test_get_jiangqian12_start_index():
@@ -313,7 +313,7 @@ def test_get_adjective_star_algorithm_switch():
             if s.name == "天伤":
                 assert idx == 8
 
-    config({"algorithm": "zhongzhou"})
+    set_config({"algorithm": "zhongzhou"})
     data2 = get_adjective_star({"solar_date": "2001-08-16", "time_index": 2, "gender": "男"})
 
     def _has2(star_name: str) -> bool:
@@ -331,4 +331,3 @@ def test_get_adjective_star_algorithm_switch():
                 assert idx == 8
             if s.name == "天伤":
                 assert idx == 10
-

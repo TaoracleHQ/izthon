@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import importlib
 
-from ._config import config, get_config, get_plugins, load_plugin, load_plugins
+from ._config import get_config, reset_config, set_config
 
 __all__ = [
     # config
-    "config",
+    "set_config",
     "get_config",
-    "load_plugins",
-    "load_plugin",
-    "get_plugins",
+    "reset_config",
     # palace core
     "get_soul_and_body",
     "get_five_elements_class",
@@ -19,7 +17,6 @@ __all__ = [
     # main API
     "by_solar",
     "by_lunar",
-    "with_options",
     "rearrange_astrolabe",
     "get_zodiac_by_solar_date",
     "get_sign_by_solar_date",
@@ -42,7 +39,6 @@ _LAZY_ATTRS: dict[str, str] = {
     # main API
     "by_solar": "astro",
     "by_lunar": "astro",
-    "with_options": "astro",
     "rearrange_astrolabe": "astro",
     "get_zodiac_by_solar_date": "astro",
     "get_sign_by_solar_date": "astro",
@@ -63,4 +59,3 @@ def __getattr__(name: str):
         raise AttributeError(name)
     mod = importlib.import_module(f"{__name__}.{mod_name}")
     return getattr(mod, name)
-

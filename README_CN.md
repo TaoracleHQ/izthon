@@ -60,39 +60,28 @@ astrolabe = by_lunar("2023-2-20", time_index=4, gender="女", is_leap_month=True
 
 入口函数：
 
-- `by_solar(solar_date, time_index, gender, fix_leap=True, language=None) -> FunctionalAstrolabe`
-- `by_lunar(lunar_date, time_index, gender, is_leap_month=False, fix_leap=True, language=None) -> FunctionalAstrolabe`
-- `with_options(option: dict) -> FunctionalAstrolabe`
-  - `option["type"]`：`"solar"` | `"lunar"`（默认 `"solar"`）
-  - `option["date_str"]`：日期字符串
-  - `option["time_index"]`：`0..12`
-  - `option["gender"]`：例如 `"male"` / `"female"` / `"男"` / `"女"`
-  - `option["is_leap_month"]`：农历闰月标记
-  - `option["fix_leap"]`：闰月修正
-  - `option["language"]`：`"zh-CN"`, `"en-US"` 等
-  - `option["astro_type"]`：`"earth"` | `"human"`（可选：天地人盘重排）
-  - `option["config"]`：配置字典（见“全局配置”）
+- `by_solar(solar_date, time_index, gender, *, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
+- `by_lunar(lunar_date, time_index, gender, *, is_leap_month=False, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
+  - `plate`：`"sky"` | `"earth"` | `"human"`
+  - `config`：单次调用配置（不会污染后续调用）
 - 常用辅助查询：
-  - `get_zodiac_by_solar_date(...)`
-  - `get_sign_by_solar_date(...)`, `get_sign_by_lunar_date(...)`
-  - `get_major_star_by_solar_date(...)`, `get_major_star_by_lunar_date(...)`
+  - `get_zodiac_by_solar_date(..., language=..., config=...)`
+  - `get_sign_by_solar_date(..., language=..., config=...)`
+  - `get_sign_by_lunar_date(..., is_leap_month=..., language=..., config=...)`
+  - `get_major_star_by_solar_date(..., fix_leap=..., language=..., config=...)`
+  - `get_major_star_by_lunar_date(..., is_leap_month=..., fix_leap=..., language=..., config=...)`
 
-### with_options（含天地人盘重排）
+### 盘型选择（天盘 / 地盘 / 人盘）
 
 ```python
-from izthon.astro import with_options
+from izthon.astro import by_solar
 
-astrolabe = with_options(
-    {
-        "type": "solar",
-        "date_str": "1979-08-21",
-        "time_index": 7,
-        "gender": "male",
-        # 可选：本次运行设置 config（注意：config 为全局状态）
-        "config": {"algorithm": "zhongzhou"},
-        # 可选：天地人盘重排
-        "astro_type": "earth",  # 或 "human"
-    }
+astrolabe = by_solar(
+    "1979-08-21",
+    7,
+    "male",
+    plate="earth",  # "sky" | "earth" | "human"
+    config={"algorithm": "zhongzhou"},
 )
 ```
 
@@ -108,12 +97,12 @@ from izthon.astro import (
 )
 
 print(get_zodiac_by_solar_date("2023-2-20"))                    # 兔
-print(get_zodiac_by_solar_date("2023-2-20", "en-US"))           # rabbit
+print(get_zodiac_by_solar_date("2023-2-20", language="en-US"))           # rabbit
 print(get_sign_by_solar_date("2023-9-5"))                       # 处女座
 print(get_sign_by_lunar_date("2023-2-3", is_leap_month=True))   # 白羊座（闰月）
 
 print(get_major_star_by_solar_date("1987-05-16", 7))            # 天机,天梁
-print(get_major_star_by_lunar_date("2023-2-17", 0, True))       # 贪狼
+print(get_major_star_by_lunar_date("2023-2-17", 0, is_leap_month=True))       # 贪狼
 ```
 
 ## 核心对象与概念
@@ -142,8 +131,8 @@ print(ziwei.palace().name)
 
 sur = astrolabe.surrounded_palaces("命宫")
 print(sur.opposite.name, sur.wealth.name, sur.career.name)
-print(sur.have(["武曲", "贪狼"]))         # 是否全部包含
-print(sur.have_one_of(["太阳", "文曲"]))  # 是否命中其一
+print(sur.contains_stars(["武曲", "贪狼"]))         # 是否全部包含
+print(sur.contains_any_star(["太阳", "文曲"]))  # 是否命中其一
 ```
 
 ### 运限（大限/流年/流月/流日/流时）
@@ -210,12 +199,12 @@ print(by_solar("2000-8-16", 2, "female", language="en-US").gender)  # female
 
 ## 全局配置（config）
 
-配置为全局状态（与 iztro 一致）。使用 `izthon.astro.config()`：
+可通过 `set_config()` 设置当前上下文默认配置，或者在 `by_solar/by_lunar` 调用时传 `config=...` 实现单次覆盖：
 
 ```python
-from izthon.astro import config, get_config
+from izthon.astro import get_config, set_config
 
-config(
+set_config(
     {
         "year_divide": "exact",         # "normal" | "exact"
         "horoscope_divide": "exact",    # "normal" | "exact"
@@ -256,23 +245,7 @@ from izthon.i18n import set_language
 set_language("ko-KR")
 ```
 
-注意：语言是全局状态；若同一进程内混用多语言，请显式调用 `set_language(...)` 或在每次调用时传 `language=...`。
-
-## 插件（Plugins）
-
-插件同样是全局注册，对每个新生成的 `FunctionalAstrolabe` 都会自动应用。
-Python 插件签名为：`plugin(astrolabe) -> None`。
-
-```python
-from izthon.astro import by_solar, load_plugin
-
-def my_plugin(astrolabe) -> None:
-    astrolabe.my_new_func = lambda: astrolabe.five_elements_class
-
-load_plugin(my_plugin)
-astrolabe = by_solar("2023-10-18", 4, "female")
-print(astrolabe.my_new_func())
-```
+语言状态为上下文局部变量；可在单次 API 调用中安全覆盖。
 
 ## 农历转换（lunar_lite）
 
@@ -281,8 +254,8 @@ print(astrolabe.my_new_func())
 ```python
 from izthon.lunar_lite import lunar_to_solar, solar_to_lunar
 
-print(solar_to_lunar("2023-4-1").to_string(True))  # 二〇二三年闰二月十一
-print(lunar_to_solar("2023-2-11", is_leap_month=True).to_string())  # 2023-4-1
+print(solar_to_lunar("2023-4-1").to_chinese())  # 二〇二三年闰二月十一
+print(lunar_to_solar("2023-2-11", is_leap_month=True).isoformat())  # 2023-4-1
 ```
 
 ## 开发与测试

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Mapping, Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any, Literal
 
 from ..i18n import kot
@@ -11,61 +13,125 @@ AgeDivide = Literal["normal", "birthday"]
 DayDivide = Literal["current", "forward"]
 Algorithm = Literal["default", "zhongzhou"]
 
-Plugin = Callable[[Any], None]
-
-_plugins: list[Plugin] = []
-_mutagens: dict[str, list[str]] = {}
-_brightness: dict[str, list[str]] = {}
-
-_year_divide: YearDivide = "normal"
-_horoscope_divide: HoroscopeDivide = "normal"
-_age_divide: AgeDivide = "normal"
-_day_divide: DayDivide = "forward"
-_algorithm: Algorithm = "default"
+_YEAR_DIVIDE_SET: set[YearDivide] = {"normal", "exact"}
+_HOROSCOPE_DIVIDE_SET: set[HoroscopeDivide] = {"normal", "exact"}
+_AGE_DIVIDE_SET: set[AgeDivide] = {"normal", "birthday"}
+_DAY_DIVIDE_SET: set[DayDivide] = {"current", "forward"}
+_ALGORITHM_SET: set[Algorithm] = {"default", "zhongzhou"}
 
 
-def load_plugins(plugins: list[Plugin]) -> None:
-    _plugins.extend(plugins)
+def _new_default_config() -> dict[str, Any]:
+    return {
+        "mutagens": {},
+        "brightness": {},
+        "year_divide": "normal",
+        "horoscope_divide": "normal",
+        "age_divide": "normal",
+        "day_divide": "forward",
+        "algorithm": "default",
+    }
 
 
-def load_plugin(plugin: Plugin) -> None:
-    _plugins.append(plugin)
+_CURRENT_CONFIG: ContextVar[dict[str, Any]] = ContextVar("izthon_config", default=_new_default_config())
 
 
-def get_plugins() -> list[Plugin]:
-    return list(_plugins)
+def _copy_config(cfg: Mapping[str, Any]) -> dict[str, Any]:
+    mutagens_raw = cfg.get("mutagens", {})
+    brightness_raw = cfg.get("brightness", {})
+    mutagens: dict[str, list[str]] = {}
+    brightness: dict[str, list[str]] = {}
+
+    if isinstance(mutagens_raw, Mapping):
+        for key, value in mutagens_raw.items():
+            if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+                mutagens[str(key)] = [str(item) for item in value]
+
+    if isinstance(brightness_raw, Mapping):
+        for key, value in brightness_raw.items():
+            if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+                brightness[str(key)] = [str(item) for item in value]
+
+    return {
+        "mutagens": mutagens,
+        "brightness": brightness,
+        "year_divide": cfg.get("year_divide", "normal"),
+        "horoscope_divide": cfg.get("horoscope_divide", "normal"),
+        "age_divide": cfg.get("age_divide", "normal"),
+        "day_divide": cfg.get("day_divide", "forward"),
+        "algorithm": cfg.get("algorithm", "default"),
+    }
 
 
-def config(cfg: dict[str, Any]) -> None:
-    """Global config entrypoint (Pythonic equivalent of iztro.astro.config())."""
-    global _year_divide, _horoscope_divide, _age_divide, _day_divide, _algorithm
+def _validate_literal(name: str, value: Any, valid_values: set[str]) -> str:
+    if value not in valid_values:
+        allowed = ", ".join(sorted(valid_values))
+        raise ValueError(f"invalid {name}: {value!r}. allowed values: {allowed}")
+    return str(value)
 
-    mutagens = cfg.get("mutagens")
-    brightness = cfg.get("brightness")
 
-    if mutagens:
+def _normalize_sequence(name: str, value: Any, expected_len: int) -> list[str]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes)):
+        raise ValueError(f"{name} must be a sequence of strings")
+    normalized = [kot(str(item)) for item in value]
+    if len(normalized) != expected_len:
+        raise ValueError(f"{name} must contain exactly {expected_len} items")
+    return normalized
+
+
+def _merge_config(base: Mapping[str, Any], patch: Mapping[str, Any]) -> dict[str, Any]:
+    merged = _copy_config(base)
+
+    mutagens = patch.get("mutagens")
+    if mutagens is not None:
+        if not isinstance(mutagens, Mapping):
+            raise ValueError("mutagens must be a mapping of heavenly stem -> 4 stars")
         for key, value in mutagens.items():
-            _mutagens[kot(str(key))] = [kot(str(item)) for item in (value or [])]
+            merged["mutagens"][kot(str(key))] = _normalize_sequence("mutagens entry", value, 4)
 
-    if brightness:
+    brightness = patch.get("brightness")
+    if brightness is not None:
+        if not isinstance(brightness, Mapping):
+            raise ValueError("brightness must be a mapping of star -> 12 brightness values")
         for key, value in brightness.items():
-            _brightness[kot(str(key))] = [kot(str(item)) for item in (value or [])]
+            merged["brightness"][kot(str(key))] = _normalize_sequence("brightness entry", value, 12)
 
-    _year_divide = cfg.get("year_divide", _year_divide)
-    _horoscope_divide = cfg.get("horoscope_divide", _horoscope_divide)
-    _age_divide = cfg.get("age_divide", _age_divide)
-    _day_divide = cfg.get("day_divide", _day_divide)
-    _algorithm = cfg.get("algorithm", _algorithm)
+    if "year_divide" in patch:
+        merged["year_divide"] = _validate_literal("year_divide", patch["year_divide"], _YEAR_DIVIDE_SET)
+    if "horoscope_divide" in patch:
+        merged["horoscope_divide"] = _validate_literal(
+            "horoscope_divide",
+            patch["horoscope_divide"],
+            _HOROSCOPE_DIVIDE_SET,
+        )
+    if "age_divide" in patch:
+        merged["age_divide"] = _validate_literal("age_divide", patch["age_divide"], _AGE_DIVIDE_SET)
+    if "day_divide" in patch:
+        merged["day_divide"] = _validate_literal("day_divide", patch["day_divide"], _DAY_DIVIDE_SET)
+    if "algorithm" in patch:
+        merged["algorithm"] = _validate_literal("algorithm", patch["algorithm"], _ALGORITHM_SET)
+
+    return merged
+
+
+def set_config(cfg: Mapping[str, Any]) -> None:
+    _CURRENT_CONFIG.set(_merge_config(_CURRENT_CONFIG.get(), cfg))
+
+
+def reset_config() -> None:
+    _CURRENT_CONFIG.set(_new_default_config())
+
+
+@contextmanager
+def using_config(cfg: Mapping[str, Any] | None):
+    if cfg is None:
+        yield
+        return
+    token = _CURRENT_CONFIG.set(_merge_config(_CURRENT_CONFIG.get(), cfg))
+    try:
+        yield
+    finally:
+        _CURRENT_CONFIG.reset(token)
 
 
 def get_config() -> dict[str, Any]:
-    return {
-        "mutagens": _mutagens,
-        "brightness": _brightness,
-        "year_divide": _year_divide,
-        "horoscope_divide": _horoscope_divide,
-        "age_divide": _age_divide,
-        "day_divide": _day_divide,
-        "algorithm": _algorithm,
-    }
-
+    return _copy_config(_CURRENT_CONFIG.get())

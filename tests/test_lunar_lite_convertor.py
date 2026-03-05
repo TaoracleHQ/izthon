@@ -26,8 +26,8 @@ def test_solar_to_lunar():
 
     for solar, (cn, plain, is_leap) in cases.items():
         res = solar_to_lunar(solar)
-        assert res.to_string(True) == cn
-        assert res.to_string() == plain
+        assert res.to_chinese() == cn
+        assert res.isoformat() == plain
         assert res.is_leap is is_leap
 
     with pytest.raises(ValueError) as exc:
@@ -64,7 +64,7 @@ def test_lunar_to_solar():
     }
 
     for solar, (lunar, is_leap) in cases.items():
-        assert lunar_to_solar(lunar, is_leap).to_string() == solar
+        assert lunar_to_solar(lunar, is_leap).isoformat() == solar
 
     with pytest.raises(ValueError) as exc:
         lunar_to_solar("1899-1-22")
@@ -91,4 +91,3 @@ def test_normalize_date_str():
 
     assert normalize_date_str(date(2023, 12, 1)) == [2023, 12, 1, 0, 0, 0]
     assert normalize_date_str(datetime(2023, 12, 1, 12)) == [2023, 12, 1, 12, 0, 0]
-

@@ -29,7 +29,7 @@ def test_get_heavenly_stem_and_earthly_branch_by_lunar_date(
     expected: str,
 ):
     res = get_heavenly_stem_and_earthly_branch_by_lunar_date(date_str, time_index, is_leap, {"year": year_divide})
-    assert res.to_string() == expected
+    assert str(res) == expected
 
 
 @pytest.mark.parametrize(
@@ -76,5 +76,4 @@ def test_get_heavenly_stem_and_earthly_branch_by_solar_date(
     expected: str,
 ):
     res = get_heavenly_stem_and_earthly_branch_by_solar_date(date_str, time_index, options)
-    assert res.to_string() == expected
-
+    assert str(res) == expected

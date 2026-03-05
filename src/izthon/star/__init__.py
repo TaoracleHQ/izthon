@@ -36,7 +36,7 @@ _LAZY_ATTRS: dict[str, str] = {
     "get_minor_star": "minor_star",
     "get_adjective_star": "adjective_star",
     # decorative / yearly helpers
-    "get_changesheng_12_start_index": "decorative_star",
+    "get_changsheng_12_start_index": "decorative_star",
     "get_jiangqian12_start_index": "decorative_star",
     "get_changsheng_12": "decorative_star",
     "get_boshi_12": "decorative_star",
@@ -82,7 +82,7 @@ __all__ = [
     "get_minor_star",
     "get_adjective_star",
     # decorative
-    "get_changesheng_12_start_index",
+    "get_changsheng_12_start_index",
     "get_jiangqian12_start_index",
     "get_changsheng_12",
     "get_boshi_12",

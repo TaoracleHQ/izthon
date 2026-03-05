@@ -1,20 +1,10 @@
 from __future__ import annotations
 
-from izthon.astro import config, with_options
+from izthon.astro import by_solar
 
 
-def test_with_options_earth_type_rearrange():
-    config({"algorithm": "zhongzhou"})
-
-    result = with_options(
-        {
-            "date_str": "1979-08-21",
-            "type": "solar",
-            "time_index": 7,
-            "gender": "male",
-            "astro_type": "earth",
-        }
-    )
+def test_earth_plate_rearrange():
+    result = by_solar("1979-08-21", 7, "male", plate="earth", config={"algorithm": "zhongzhou"})
 
     soul_palace = result.palace("命宫")
     assert result.earthly_branch_of_soul_palace == "卯"
@@ -29,46 +19,18 @@ def test_with_options_earth_type_rearrange():
     assert soul_palace.decadal.earthly_branch == "卯"
 
 
-def test_with_options_earth_type_changsheng12_diff_by_gender():
-    config({"algorithm": "zhongzhou"})
-
-    result_female = with_options(
-        {
-            "date_str": "1999-05-03",
-            "type": "solar",
-            "time_index": 8,
-            "gender": "female",
-            "astro_type": "earth",
-        }
-    )
+def test_earth_plate_changsheng12_diff_by_gender():
+    result_female = by_solar("1999-05-03", 8, "female", plate="earth", config={"algorithm": "zhongzhou"})
     assert result_female.palaces[0].changsheng12 == "病"
     assert result_female.palaces[1].changsheng12 == "死"
 
-    result_male = with_options(
-        {
-            "date_str": "1999-05-03",
-            "type": "solar",
-            "time_index": 8,
-            "gender": "male",
-            "astro_type": "earth",
-        }
-    )
+    result_male = by_solar("1999-05-03", 8, "male", plate="earth", config={"algorithm": "zhongzhou"})
     assert result_male.palaces[0].changsheng12 == "病"
     assert result_male.palaces[1].changsheng12 == "衰"
 
 
-def test_with_options_human_type_rearrange():
-    config({"algorithm": "zhongzhou"})
-
-    result = with_options(
-        {
-            "date_str": "1979-08-21",
-            "type": "solar",
-            "time_index": 8,
-            "gender": "male",
-            "astro_type": "human",
-        }
-    )
+def test_human_plate_rearrange():
+    result = by_solar("1979-08-21", 8, "male", plate="human", config={"algorithm": "zhongzhou"})
 
     soul_palace = result.palace("命宫")
     assert result.earthly_branch_of_soul_palace == "寅"
@@ -83,35 +45,16 @@ def test_with_options_human_type_rearrange():
     assert soul_palace.decadal.earthly_branch == "寅"
 
 
-def test_with_options_human_type_rearrange_tianshi_tianshang_tiancai():
-    config({"algorithm": "zhongzhou"})
-
-    result = with_options(
-        {
-            "date_str": "1999-05-03",
-            "type": "solar",
-            "time_index": 8,
-            "gender": "male",
-            "astro_type": "human",
-        }
-    )
+def test_human_plate_tianshi_tianshang_tiancai():
+    result = by_solar("1999-05-03", 8, "male", plate="human", config={"algorithm": "zhongzhou"})
 
     assert result.star("天才").palace().index == 11
     assert result.star("天伤").palace().index == 3
     assert result.star("天使").palace().index == 1
 
 
-def test_with_options_fix_github_242_244():
-    config({"year_divide": "normal"})
-
-    astrolabe = with_options(
-        {
-            "date_str": "1979.08.21",
-            "type": "solar",
-            "time_index": 6,
-            "gender": "male",
-        }
-    )
+def test_explicit_config_fix_github_242_244():
+    astrolabe = by_solar("1979.08.21", 6, "male", config={"year_divide": "normal"})
     horoscope = astrolabe.horoscope("2025-06-10 12:00")
     assert horoscope.monthly.index == 7
     assert horoscope.daily.index == 9
@@ -124,3 +67,14 @@ def test_with_options_fix_github_242_244():
     assert horoscope3.monthly.index == 2
     assert horoscope3.daily.index == 5
 
+
+def test_explicit_config_for_zhongzhou():
+    astrolabe = by_solar("2000.01.03", 11, "male", config={"algorithm": "zhongzhou"})
+    assert astrolabe.soul == "文曲"
+
+
+def test_explicit_config_for_normal_horoscope():
+    astrolabe = by_solar("1999.05.03", 8, "male", config={"horoscope_divide": "normal"})
+    horoscope = astrolabe.horoscope("2025-02-02 10:00")
+    assert horoscope.monthly.index == 9
+    assert horoscope.daily.index == 1

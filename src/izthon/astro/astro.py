@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Literal
 
 from ..data import CHINESE_TIME, EARTHLY_BRANCHES, HEAVENLY_STEMS, TIME_RANGE, earthly_branches
-from ..i18n import kot, set_language, t
+from ..i18n import get_language, kot, t, using_language
 from ..lunar_lite import (
     get_heavenly_stem_and_earthly_branch_by_solar_date,
     get_sign,
@@ -23,25 +24,24 @@ from ..star import (
     get_yearly_12,
 )
 from ..util import fix_index, translate_chinese_date
-from ._config import get_config, get_plugins
+from ._config import get_config, using_config
 from .functional_astrolabe import FunctionalAstrolabe
 from .functional_palace import FunctionalPalace
 from .palace import Decadal, SoulAndBody, get_five_elements_class, get_horoscope, get_palace_names, get_soul_and_body
 
 
 Language = Literal["en-US", "ja-JP", "ko-KR", "zh-CN", "zh-TW", "vi-VN"]
+Plate = Literal["sky", "earth", "human"]
+ConfigPatch = Mapping[str, Any]
 
 
-def by_solar(
+def _build_by_solar(
     solar_date: str,
     time_index: int,
     gender: str,
-    fix_leap: bool = True,
-    language: Language | None = None,
+    *,
+    fix_leap: bool,
 ) -> FunctionalAstrolabe:
-    if language:
-        set_language(language)
-
     cfg = get_config()
     t_index = time_index
     if cfg["day_divide"] == "current" and t_index >= 12:
@@ -116,16 +116,16 @@ def by_solar(
     soul_base = earthly_branch_of_year_key if cfg["algorithm"] == "zhongzhou" else earthly_branch_of_soul_palace_key
     soul = t(earthly_branches[soul_base]["soul"])
 
-    astrolabe = FunctionalAstrolabe(
+    return FunctionalAstrolabe(
         gender=t(kot(gender)),
         solar_date=solar_date,
-        lunar_date=lunar_date.to_string(True),
+        lunar_date=lunar_date.to_chinese(),
         chinese_date=translate_chinese_date(chinese_date),
         raw_dates={"lunar_date": lunar_date, "chinese_date": chinese_date},
         time=t(CHINESE_TIME[time_index]),
         time_range=TIME_RANGE[time_index],
-        sign=get_sign_by_solar_date(solar_date, language),
-        zodiac=get_zodiac_by_solar_date(solar_date, language),
+        sign=get_sign_by_solar_date(solar_date),
+        zodiac=get_zodiac_by_solar_date(solar_date),
         earthly_branch_of_soul_palace=t(earthly_branch_of_soul_palace_key),
         earthly_branch_of_body_palace=earthly_branch_of_body_palace,
         soul=soul,
@@ -133,35 +133,78 @@ def by_solar(
         five_elements_class=get_five_elements_class(sb.heavenly_stem_of_soul, sb.earthly_branch_of_soul),
         palaces=palaces,
         copyright=f"copyright © 2023-{datetime.now().year} iztro (https://github.com/SylarLong/iztro)",
+        runtime_language=get_language(),
+        runtime_config=cfg,
     )
 
-    for plugin in get_plugins():
-        astrolabe.use(plugin)
 
-    return astrolabe
+def _rearrange_for_plate(
+    *,
+    astrolabe: FunctionalAstrolabe,
+    plate: Plate,
+    time_index: int,
+    fix_leap: bool,
+) -> FunctionalAstrolabe:
+    if plate == "sky":
+        return astrolabe
+    if plate == "earth":
+        body_palace = astrolabe.palace("身宫")
+        return rearrange_astrolabe(
+            from_={"heavenly_stem": body_palace.heavenly_stem, "earthly_branch": body_palace.earthly_branch},
+            astrolabe=astrolabe,
+            time_index=time_index,
+            fix_leap=fix_leap,
+        )
+    if plate == "human":
+        fude_palace = astrolabe.palace("福德")
+        return rearrange_astrolabe(
+            from_={"heavenly_stem": fude_palace.heavenly_stem, "earthly_branch": fude_palace.earthly_branch},
+            astrolabe=astrolabe,
+            time_index=time_index,
+            fix_leap=fix_leap,
+        )
+    raise ValueError("invalid plate. expected 'sky', 'earth', or 'human'.")
+
+
+def by_solar(
+    solar_date: str,
+    time_index: int,
+    gender: str,
+    *,
+    fix_leap: bool = True,
+    language: Language = "zh-CN",
+    config: ConfigPatch | None = None,
+    plate: Plate = "sky",
+) -> FunctionalAstrolabe:
+    with using_language(language), using_config(config):
+        astrolabe = _build_by_solar(solar_date, time_index, gender, fix_leap=fix_leap)
+        return _rearrange_for_plate(astrolabe=astrolabe, plate=plate, time_index=time_index, fix_leap=fix_leap)
 
 
 def by_lunar(
     lunar_date: str,
     time_index: int,
     gender: str,
+    *,
     is_leap_month: bool = False,
     fix_leap: bool = True,
-    language: Language | None = None,
+    language: Language = "zh-CN",
+    config: ConfigPatch | None = None,
+    plate: Plate = "sky",
 ) -> FunctionalAstrolabe:
-    solar = lunar_to_solar(lunar_date, is_leap_month)
-    return by_solar(solar.to_string(), time_index, gender, fix_leap, language)
+    with using_language(language), using_config(config):
+        solar = lunar_to_solar(lunar_date, is_leap_month)
+        astrolabe = _build_by_solar(solar.isoformat(), time_index, gender, fix_leap=fix_leap)
+        return _rearrange_for_plate(astrolabe=astrolabe, plate=plate, time_index=time_index, fix_leap=fix_leap)
 
 
 def rearrange_astrolabe(
     *,
     from_: dict[str, str],
     astrolabe: FunctionalAstrolabe,
-    option: dict[str, Any],
+    time_index: int,
+    fix_leap: bool = True,
 ) -> FunctionalAstrolabe:
-    time_index = int(option["time_index"])
-    fix_leap = bool(option.get("fix_leap", True))
-
     sb = get_soul_and_body(
         solar_date=astrolabe.solar_date,
         time_index=time_index,
@@ -230,105 +273,75 @@ def rearrange_astrolabe(
         palace.ages = ages[i]
         palace.is_body_palace = sb.body_index == i
 
-    soul_palace = astrolabe.palace("命宫")
-    if soul_palace:
-        astrolabe.earthly_branch_of_soul_palace = soul_palace.earthly_branch
-
+    astrolabe.earthly_branch_of_soul_palace = astrolabe.palace("命宫").earthly_branch
     return astrolabe
 
 
-def with_options(option: dict[str, Any]) -> FunctionalAstrolabe:
-    typ = option.get("type", "solar")
-    date_str = option["date_str"]
-    time_index = int(option["time_index"])
-    gender = option["gender"]
-    is_leap_month = bool(option.get("is_leap_month", False))
-    fix_leap = bool(option.get("fix_leap", True))
-    language = option.get("language")
-    astro_type = option.get("astro_type")
-    cfg = option.get("config")
-
-    if cfg:
-        from ._config import config
-
-        config(cfg)
-
-    if typ == "solar":
-        result = by_solar(date_str, time_index, gender, fix_leap, language)
-    else:
-        result = by_lunar(date_str, time_index, gender, is_leap_month, fix_leap, language)
-
-    if astro_type == "earth":
-        body_palace = result.palace("身宫")
-        if not body_palace:
-            return result
-        return rearrange_astrolabe(
-            from_={"heavenly_stem": body_palace.heavenly_stem, "earthly_branch": body_palace.earthly_branch},
-            astrolabe=result,
-            option=option,
-        )
-    if astro_type == "human":
-        fude_palace = result.palace("福德")
-        if not fude_palace:
-            return result
-        return rearrange_astrolabe(
-            from_={"heavenly_stem": fude_palace.heavenly_stem, "earthly_branch": fude_palace.earthly_branch},
-            astrolabe=result,
-            option=option,
-        )
-
-    return result
+def get_zodiac_by_solar_date(
+    solar_date: str,
+    *,
+    language: Language | None = None,
+    config: ConfigPatch | None = None,
+) -> str:
+    with using_language(language), using_config(config):
+        cfg = get_config()
+        yearly = get_heavenly_stem_and_earthly_branch_by_solar_date(
+            solar_date,
+            0,
+            {"year": cfg["year_divide"]},
+        ).yearly
+        return t(kot(get_zodiac(yearly[1])))
 
 
-def get_zodiac_by_solar_date(solar_date: str, language: Language | None = None) -> str:
-    if language:
-        set_language(language)
-    cfg = get_config()
-    yearly = get_heavenly_stem_and_earthly_branch_by_solar_date(
-        solar_date,
-        0,
-        {"year": cfg["year_divide"]},
-    ).yearly
-    return t(kot(get_zodiac(yearly[1])))
+def get_sign_by_solar_date(
+    solar_date: str,
+    *,
+    language: Language | None = None,
+    config: ConfigPatch | None = None,
+) -> str:
+    with using_language(language), using_config(config):
+        return t(kot(get_sign(solar_date)))
 
 
-def get_sign_by_solar_date(solar_date: str, language: Language | None = None) -> str:
-    if language:
-        set_language(language)
-    return t(kot(get_sign(solar_date)))
-
-
-def get_sign_by_lunar_date(lunar_date: str, is_leap_month: bool = False, language: Language | None = None) -> str:
-    if language:
-        set_language(language)
-    solar = lunar_to_solar(lunar_date, is_leap_month)
-    return get_sign_by_solar_date(solar.to_string(), language)
+def get_sign_by_lunar_date(
+    lunar_date: str,
+    *,
+    is_leap_month: bool = False,
+    language: Language | None = None,
+    config: ConfigPatch | None = None,
+) -> str:
+    with using_language(language), using_config(config):
+        solar = lunar_to_solar(lunar_date, is_leap_month)
+        return get_sign_by_solar_date(solar.isoformat())
 
 
 def get_major_star_by_solar_date(
     solar_date: str,
     time_index: int,
+    *,
     fix_leap: bool = True,
     language: Language | None = None,
+    config: ConfigPatch | None = None,
 ) -> str:
-    if language:
-        set_language(language)
-
-    sb = get_soul_and_body(solar_date=solar_date, time_index=time_index, fix_leap=fix_leap)
-    major_stars = get_major_star({"solar_date": solar_date, "time_index": time_index, "fix_leap": fix_leap})
-    stars = [s for s in major_stars[sb.soul_index] if s.type == "major"]
-    if stars:
-        return ",".join(t(s.name) for s in stars)
-    # Borrow opposite palace if soul palace is empty.
-    return ",".join(t(s.name) for s in major_stars[fix_index(sb.soul_index + 6)] if s.type == "major")
+    with using_language(language), using_config(config):
+        sb = get_soul_and_body(solar_date=solar_date, time_index=time_index, fix_leap=fix_leap)
+        major_stars = get_major_star({"solar_date": solar_date, "time_index": time_index, "fix_leap": fix_leap})
+        stars = [s for s in major_stars[sb.soul_index] if s.type == "major"]
+        if stars:
+            return ",".join(t(s.name) for s in stars)
+        # Borrow opposite palace if soul palace is empty.
+        return ",".join(t(s.name) for s in major_stars[fix_index(sb.soul_index + 6)] if s.type == "major")
 
 
 def get_major_star_by_lunar_date(
     lunar_date: str,
     time_index: int,
+    *,
     is_leap_month: bool = False,
     fix_leap: bool = True,
     language: Language | None = None,
+    config: ConfigPatch | None = None,
 ) -> str:
-    solar = lunar_to_solar(lunar_date, is_leap_month)
-    return get_major_star_by_solar_date(solar.to_string(), time_index, fix_leap, language)
+    with using_language(language), using_config(config):
+        solar = lunar_to_solar(lunar_date, is_leap_month)
+        return get_major_star_by_solar_date(solar.isoformat(), time_index, fix_leap=fix_leap)
