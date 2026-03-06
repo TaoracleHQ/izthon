@@ -5,6 +5,12 @@
 `izthon` is a pure-Python re-implementation of the TypeScript library `iztro` (Zi Wei Dou Shu astrolabe generator).
 It is implemented as a normal Python package (no runtime dependency on the TypeScript code).
 
+## Upstream Reference
+
+- `izthon` follows the behavior of the original TypeScript project `iztro` as a specification reference.
+- The bundled `lunar_lite` module follows the upstream `lunar-lite` behavior used by `iztro`.
+- These upstream projects are references only; `izthon` does not depend on them at runtime.
+
 ## Design Goals
 
 - Pure Python implementation; TS sources are only used as a spec (no runtime dependency on TS).
@@ -67,7 +73,14 @@ Entry points:
   - `config`: per-call config patch (no cross-call leakage)
 - Plugins:
   - `load_plugin(plugin)` / `load_plugins([...])`
+  - `get_plugins()` / `reset_plugins()`
   - `astrolabe.use(plugin)`
+- Low-level astro helpers:
+  - `get_soul_and_body(...)`
+  - `get_five_elements_class(...)`
+  - `get_palace_names(...)`
+  - `get_horoscope(...)`
+  - `rearrange_astrolabe(...)`
 - Helpers:
   - `get_zodiac_by_solar_date(..., language=..., config=...)`
   - `get_sign_by_solar_date(..., language=..., config=...)`
@@ -105,7 +118,7 @@ astrolabe = with_options(
 ### Plugins
 
 ```python
-from izthon.astro import by_solar, load_plugin
+from izthon.astro import by_solar, get_plugins, load_plugin, reset_plugins
 
 
 def add_five_elements(self):
@@ -113,9 +126,16 @@ def add_five_elements(self):
 
 
 load_plugin(add_five_elements)
+print(len(get_plugins()))
 
-astrolabe = by_solar("2023-10-18", 4, "female")
-print(astrolabe.five_elements())
+global_astrolabe = by_solar("2023-10-18", 4, "female")
+print(global_astrolabe.five_elements())
+
+reset_plugins()
+
+instance_astrolabe = by_solar("2023-10-18", 4, "female")
+instance_astrolabe.use(add_five_elements)
+print(instance_astrolabe.five_elements())
 ```
 
 ### Helper APIs (sign/zodiac/major stars)
@@ -163,7 +183,44 @@ print(ziwei.palace().name)
 surroundings = astrolabe.surrounding_palaces("命宫")
 print(surroundings.opposite.name, surroundings.wealth.name, surroundings.career.name)
 print(surroundings.has_stars(["武曲", "贪狼"]))  # all included?
+print(surroundings.lacks_stars(["地空", "地劫"]))
 print(surroundings.has_any_star(["太阳", "文曲"]))  # any included?
+print(surroundings.has_mutagen("禄"))
+print(surroundings.lacks_mutagen("忌"))
+```
+
+### Palace Helper Methods
+
+```python
+palace = astrolabe.palace("命宫")
+
+print(palace.has_stars(["武曲"]))
+print(palace.lacks_stars(["火星"]))
+print(palace.has_any_star(["武曲", "贪狼"]))
+print(palace.has_mutagen("禄"))
+print(palace.lacks_mutagen("忌"))
+print(palace.is_empty())
+
+print(palace.flies_to("兄弟", "忌"))
+print(palace.flies_one_of_to("夫妻", ["权", "科"]))
+print(palace.does_not_fly_to("兄弟", "科"))
+
+print(palace.has_self_mutagen("禄"))
+print(palace.has_any_self_mutagen())
+print(palace.lacks_self_mutagen("忌"))
+print([p.name if p else None for p in palace.mutagen_palaces()])
+```
+
+### Star Helper Methods
+
+```python
+star = astrolabe.star("紫微")
+
+print(star.palace().name)
+print(star.opposite_palace().name)
+print(star.surrounding_palaces().target.name)
+print(star.with_mutagen(["禄", "权"]))
+print(star.with_brightness(["庙", "旺"]))
 ```
 
 ### Horoscope (Decadal/Yearly/Monthly/Daily/Hourly)
@@ -178,6 +235,35 @@ print(horoscope.yearly.index, horoscope.yearly.heavenly_stem, horoscope.yearly.e
 # Query horoscope stars (decadal + yearly stars on a given palace in a given scope)
 print(horoscope.has_horoscope_stars("疾厄", "decadal", ["流陀", "流曲", "运昌"]))
 print(horoscope.has_horoscope_mutagen("兄弟", "decadal", "禄"))
+```
+
+### Horoscope Helper Methods
+
+```python
+print(horoscope.age_palace().name)
+print(horoscope.palace("命宫", "yearly").name)
+print(horoscope.surrounding_palaces("命宫", "decadal").opposite.name)
+print(horoscope.lacks_horoscope_stars("疾厄", "decadal", ["流喜", "流鸾"]))
+print(horoscope.has_any_horoscope_star("疾厄", "decadal", ["流陀", "流曲"]))
+```
+
+### Low-level Astro Helpers
+
+```python
+from izthon.astro import (
+    get_five_elements_class,
+    get_horoscope,
+    get_palace_names,
+    get_soul_and_body,
+)
+
+print(get_palace_names(0))
+print(get_five_elements_class("丙", "寅"))
+print(get_soul_and_body(solar_date="2023-8-15", time_index=0, fix_leap=True))
+decadals, ages = get_horoscope(solar_date="2023-8-15", time_index=0, gender="女", fix_leap=True)
+print(decadals[0], ages[0])
+
+# `rearrange_astrolabe(...)` is the low-level primitive behind `plate="earth"` and `plate="human"`.
 ```
 
 ## Parameters & Conventions
@@ -232,7 +318,7 @@ for a leap month, days after the 15th may be treated as the next month for some 
 Use `set_config()` to set defaults for the current context, or pass `config=...` per call to avoid cross-call state:
 
 ```python
-from izthon.astro import get_config, set_config
+from izthon.astro import get_config, reset_config, set_config
 
 set_config(
     {
@@ -244,6 +330,7 @@ set_config(
     }
 )
 print(get_config())
+reset_config()
 ```
 
 You can also customize:
@@ -278,16 +365,66 @@ set_language("ko-KR")
 
 Language is context-local and can be safely overridden per API call.
 
+### Direct i18n Helpers
+
+```python
+from izthon.i18n import get_language, kot, set_language, t, translate
+
+set_language("en-US")
+print(get_language())
+print(t("soulPalace"))
+print(translate("bodyPalace"))
+print(kot("female"))
+```
+
 ## Lunar Conversion (lunar_lite)
 
 `izthon.lunar_lite` is a Python port of `lunar-lite` (range: 1900..2100).
 
 ```python
-from izthon.lunar_lite import lunar_to_solar, solar_to_lunar
+from izthon.lunar_lite import (
+    Options,
+    get_heavenly_stem_and_earthly_branch_by_lunar_date,
+    get_heavenly_stem_and_earthly_branch_by_solar_date,
+    get_sign,
+    get_total_days_of_lunar_month,
+    get_zodiac,
+    lunar_to_solar,
+    solar_to_lunar,
+)
 
 print(solar_to_lunar("2023-4-1").to_chinese())  # 二〇二三年闰二月十一
 print(lunar_to_solar("2023-2-11", is_leap_month=True).isoformat())  # 2023-4-1
+print(get_sign("2023-9-5"))
+print(get_zodiac("卯"))
+print(get_total_days_of_lunar_month("2023-4-1"))
+
+options = Options(year="exact", month="exact")
+print(get_heavenly_stem_and_earthly_branch_by_solar_date("2025-2-3", 12, options).yearly)
+print(get_heavenly_stem_and_earthly_branch_by_lunar_date("2023-2-11", 2, True, options).daily)
 ```
+
+Data classes exported by `izthon.lunar_lite`:
+
+- `LunarDate`
+- `SolarDate`
+- `HeavenlyStemAndEarthlyBranchDate`
+- `Options`
+
+## Low-level Modules
+
+### `izthon.star`
+
+- Container: `init_stars()`
+- Location helpers: `get_start_index()`, `get_lu_yang_tuo_ma_index()`, `get_kui_yue_index()`, `get_zuo_you_index()`, `get_chang_qu_index()`, `get_daily_star_index()`, `get_timely_star_index()`, `get_kong_jie_index()`, `get_huo_ling_index()`, `get_luan_xi_index()`, `get_huagai_xianchi_index()`, `get_gu_gua_index()`, `get_yearly_star_index()`, `get_tianshi_tianshang_index()`, `get_nianjie_index()`, `get_monthly_star_index()`, `get_chang_qu_index_by_heavenly_stem()`, `get_jiesha_adj_index()`, `get_dahao_index()`
+- Star builders: `get_major_star()`, `get_minor_star()`, `get_adjective_star()`
+- Decorative / cycle helpers: `get_changsheng_12_start_index()`, `get_jiangqian_12_start_index()`, `get_changsheng_12()`, `get_boshi_12()`, `get_yearly_12()`, `get_horoscope_star()`
+
+### `izthon.util`
+
+- Index helpers: `fix_index()`, `earthly_branch_index_to_palace_index()`, `fix_earthly_branch_index()`, `fix_lunar_month_index()`, `fix_lunar_day_index()`, `get_age_index()`
+- Brightness / mutagen helpers: `get_brightness()`, `get_mutagen()`, `get_mutagens_by_heavenly_stem()`
+- Misc helpers: `merge_stars()`, `time_to_index()`, `translate_chinese_date()`
 
 ## Development
 
