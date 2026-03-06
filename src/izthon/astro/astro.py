@@ -27,11 +27,13 @@ from ..util import fix_index, translate_chinese_date
 from ._config import get_config, using_config
 from .functional_astrolabe import FunctionalAstrolabe
 from .functional_palace import FunctionalPalace
+from .plugin import get_plugins
 from .palace import Decadal, SoulAndBody, get_five_elements_class, get_horoscope, get_palace_names, get_soul_and_body
 
 
 Language = Literal["en-US", "ja-JP", "ko-KR", "zh-CN", "zh-TW", "vi-VN"]
 Plate = Literal["sky", "earth", "human"]
+DateType = Literal["solar", "lunar"]
 ConfigPatch = Mapping[str, Any]
 
 
@@ -66,7 +68,7 @@ def _build_by_solar(
     adjective_stars = get_adjective_star(
         {"solar_date": solar_date, "time_index": t_index, "gender": gender, "fix_leap": fix_leap}
     )
-    changsheng12 = get_changsheng_12(
+    changsheng_12 = get_changsheng_12(
         {"solar_date": solar_date, "time_index": t_index, "gender": gender, "fix_leap": fix_leap}
     )
     boshi12 = get_boshi_12(solar_date, gender)
@@ -94,10 +96,10 @@ def _build_by_solar(
                 major_stars=major_stars[i],
                 minor_stars=minor_stars[i],
                 adjective_stars=adjective_stars[i],
-                changsheng12=changsheng12[i],
-                boshi12=boshi12[i],
-                jiangqian12=yearly12["jiangqian12"][i],
-                suiqian12=yearly12["suiqian12"][i],
+                changsheng_12=changsheng_12[i],
+                boshi_12=boshi12[i],
+                jiangqian_12=yearly12["jiangqian_12"][i],
+                suiqian_12=yearly12["suiqian_12"][i],
                 decadal=decadals[i],
                 ages=ages[i],
             )
@@ -178,7 +180,10 @@ def by_solar(
 ) -> FunctionalAstrolabe:
     with using_language(language), using_config(config):
         astrolabe = _build_by_solar(solar_date, time_index, gender, fix_leap=fix_leap)
-        return _rearrange_for_plate(astrolabe=astrolabe, plate=plate, time_index=time_index, fix_leap=fix_leap)
+        astrolabe = _rearrange_for_plate(astrolabe=astrolabe, plate=plate, time_index=time_index, fix_leap=fix_leap)
+        for plugin in get_plugins():
+            astrolabe.use(plugin)
+        return astrolabe
 
 
 def by_lunar(
@@ -195,7 +200,46 @@ def by_lunar(
     with using_language(language), using_config(config):
         solar = lunar_to_solar(lunar_date, is_leap_month)
         astrolabe = _build_by_solar(solar.isoformat(), time_index, gender, fix_leap=fix_leap)
-        return _rearrange_for_plate(astrolabe=astrolabe, plate=plate, time_index=time_index, fix_leap=fix_leap)
+        astrolabe = _rearrange_for_plate(astrolabe=astrolabe, plate=plate, time_index=time_index, fix_leap=fix_leap)
+        for plugin in get_plugins():
+            astrolabe.use(plugin)
+        return astrolabe
+
+
+def with_options(
+    *,
+    date_value: str,
+    time_index: int,
+    gender: str,
+    date_type: DateType = "solar",
+    is_leap_month: bool = False,
+    fix_leap: bool = True,
+    language: Language = "zh-CN",
+    config: ConfigPatch | None = None,
+    plate: Plate = "sky",
+) -> FunctionalAstrolabe:
+    if date_type == "solar":
+        return by_solar(
+            date_value,
+            time_index,
+            gender,
+            fix_leap=fix_leap,
+            language=language,
+            config=config,
+            plate=plate,
+        )
+    if date_type == "lunar":
+        return by_lunar(
+            date_value,
+            time_index,
+            gender,
+            is_leap_month=is_leap_month,
+            fix_leap=fix_leap,
+            language=language,
+            config=config,
+            plate=plate,
+        )
+    raise ValueError("invalid date_type. expected 'solar' or 'lunar'.")
 
 
 def rearrange_astrolabe(
@@ -217,7 +261,7 @@ def rearrange_astrolabe(
     major_stars = get_major_star(
         {"solar_date": astrolabe.solar_date, "time_index": time_index, "fix_leap": fix_leap, "from": from_}
     )
-    changsheng12 = get_changsheng_12(
+    changsheng_12 = get_changsheng_12(
         {
             "solar_date": astrolabe.solar_date,
             "time_index": time_index,
@@ -268,7 +312,7 @@ def rearrange_astrolabe(
 
         palace.name = palace_names[i]
         palace.major_stars = major_stars[i]
-        palace.changsheng12 = changsheng12[i]
+        palace.changsheng_12 = changsheng_12[i]
         palace.decadal = decadals[i]
         palace.ages = ages[i]
         palace.is_body_palace = sb.body_index == i

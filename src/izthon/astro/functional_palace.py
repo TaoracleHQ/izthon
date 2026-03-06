@@ -17,10 +17,10 @@ class FunctionalPalace:
     major_stars: list["FunctionalStar"] = field(default_factory=list)
     minor_stars: list["FunctionalStar"] = field(default_factory=list)
     adjective_stars: list["FunctionalStar"] = field(default_factory=list)
-    changsheng12: str = ""
-    boshi12: str = ""
-    jiangqian12: str = ""
-    suiqian12: str = ""
+    changsheng_12: str = ""
+    boshi_12: str = ""
+    jiangqian_12: str = ""
+    suiqian_12: str = ""
     decadal: Decadal | None = None
     ages: list[int] = field(default_factory=list)
 
@@ -32,16 +32,16 @@ class FunctionalPalace:
     def astrolabe(self) -> "FunctionalAstrolabe | None":
         return self._astrolabe
 
-    def contains_stars(self, stars: list[str]) -> bool:
+    def has_stars(self, stars: list[str]) -> bool:
         return analyzer.has_stars(self, stars)
 
-    def excludes_stars(self, stars: list[str]) -> bool:
+    def lacks_stars(self, stars: list[str]) -> bool:
         return analyzer.not_have_stars(self, stars)
 
-    def contains_any_star(self, stars: list[str]) -> bool:
+    def has_any_star(self, stars: list[str]) -> bool:
         return analyzer.has_one_of_stars(self, stars)
 
-    def contains_mutagen(self, mutagen: str) -> bool:
+    def has_mutagen(self, mutagen: str) -> bool:
         return analyzer.has_mutagen_in_palace(self, mutagen)
 
     def lacks_mutagen(self, mutagen: str) -> bool:
@@ -51,7 +51,7 @@ class FunctionalPalace:
         if [s for s in self.major_stars if s.type == "major"]:
             return False
 
-        if exclude_stars and self.contains_any_star(exclude_stars):
+        if exclude_stars and self.has_any_star(exclude_stars):
             return False
 
         return True
@@ -65,7 +65,7 @@ class FunctionalPalace:
         stars = analyzer.mutagens_to_stars(self.heavenly_stem, with_mutagens)
         if not stars:
             return False
-        return to_palace.contains_stars(stars)
+        return to_palace.has_stars(stars)
 
     def flies_one_of_to(self, to: int | str, with_mutagens: list[str]) -> bool:
         astrolabe = self.astrolabe()
@@ -76,9 +76,9 @@ class FunctionalPalace:
         stars = analyzer.mutagens_to_stars(self.heavenly_stem, with_mutagens)
         if not stars:
             return True
-        return to_palace.contains_any_star(stars)
+        return to_palace.has_any_star(stars)
 
-    def not_fly_to(self, to: int | str, with_mutagens: str | list[str]) -> bool:
+    def does_not_fly_to(self, to: int | str, with_mutagens: str | list[str]) -> bool:
         astrolabe = self.astrolabe()
         if not astrolabe:
             raise ValueError("palace is detached from astrolabe.")
@@ -87,23 +87,23 @@ class FunctionalPalace:
         stars = analyzer.mutagens_to_stars(self.heavenly_stem, with_mutagens)
         if not stars:
             return True
-        return to_palace.excludes_stars(stars)
+        return to_palace.lacks_stars(stars)
 
-    def self_mutaged(self, with_mutagens: str | list[str]) -> bool:
+    def has_self_mutagen(self, with_mutagens: str | list[str]) -> bool:
         stars = analyzer.mutagens_to_stars(self.heavenly_stem, with_mutagens)
-        return self.contains_stars(stars)
+        return self.has_stars(stars)
 
-    def self_mutaged_one_of(self, with_mutagens: list[str] | None = None) -> bool:
+    def has_any_self_mutagen(self, with_mutagens: list[str] | None = None) -> bool:
         muts = with_mutagens or ["禄", "权", "科", "忌"]
         stars = analyzer.mutagens_to_stars(self.heavenly_stem, muts)
-        return self.contains_any_star(stars)
+        return self.has_any_star(stars)
 
-    def not_self_mutaged(self, with_mutagens: str | list[str] | None = None) -> bool:
+    def lacks_self_mutagen(self, with_mutagens: str | list[str] | None = None) -> bool:
         muts = with_mutagens or ["禄", "权", "科", "忌"]
         stars = analyzer.mutagens_to_stars(self.heavenly_stem, muts)
-        return self.excludes_stars(stars)
+        return self.lacks_stars(stars)
 
-    def mutaged_places(self) -> list["FunctionalPalace | None"]:
+    def mutagen_palaces(self) -> list["FunctionalPalace | None"]:
         astrolabe = self.astrolabe()
         if not astrolabe:
             raise ValueError("palace is detached from astrolabe.")

@@ -17,9 +17,10 @@ if str(_SRC) not in sys.path:
 def _reset_izthon_state():
     """Reset contextual state between tests (language/config)."""
     from izthon.i18n import set_language
-    from izthon.astro import reset_config
+    from izthon.astro import reset_config, reset_plugins
 
     set_language("zh-CN")
     reset_config()
+    reset_plugins()
 
     yield

@@ -144,11 +144,11 @@ def test_by_solar_basic_and_horoscope_queries():
     assert horoscope.has_horoscope_stars("财帛", "yearly", ["流陀", "流曲", "运昌"]) is True
     assert horoscope.has_horoscope_stars("迁移", "monthly", ["流陀", "流曲", "运昌"]) is True
     assert horoscope.has_horoscope_stars("田宅", "daily", ["流陀", "流曲", "运昌"]) is True
-    assert horoscope.not_have_horoscope_stars("疾厄", "decadal", ["流陀", "流曲", "运昌"]) is False
-    assert horoscope.not_have_horoscope_stars("疾厄", "decadal", ["流陀", "流鸾", "运昌"]) is False
-    assert horoscope.not_have_horoscope_stars("疾厄", "decadal", ["流喜", "流鸾", "流魁"]) is True
-    assert horoscope.has_one_of_horoscope_stars("疾厄", "decadal", ["流陀", "流曲", "运昌"]) is True
-    assert horoscope.has_one_of_horoscope_stars("疾厄", "decadal", ["流喜", "流鸾", "流魁"]) is False
+    assert horoscope.lacks_horoscope_stars("疾厄", "decadal", ["流陀", "流曲", "运昌"]) is False
+    assert horoscope.lacks_horoscope_stars("疾厄", "decadal", ["流陀", "流鸾", "运昌"]) is False
+    assert horoscope.lacks_horoscope_stars("疾厄", "decadal", ["流喜", "流鸾", "流魁"]) is True
+    assert horoscope.has_any_horoscope_star("疾厄", "decadal", ["流陀", "流曲", "运昌"]) is True
+    assert horoscope.has_any_horoscope_star("疾厄", "decadal", ["流喜", "流鸾", "流魁"]) is False
 
     assert horoscope.has_horoscope_mutagen("兄弟", "decadal", "禄") is True
     assert horoscope.has_horoscope_mutagen("夫妻", "decadal", "权") is True
@@ -185,33 +185,33 @@ def test_by_solar_basic_and_horoscope_queries():
     assert decadal_palace.heavenly_stem == "庚"
     assert decadal_palace.earthly_branch == "辰"
 
-    decadal_surpalaces = horoscope.surrounded_palaces("命宫", "decadal")
-    assert decadal_surpalaces.target.name == "夫妻"
-    assert decadal_surpalaces.target.heavenly_stem == "庚"
-    assert decadal_surpalaces.target.earthly_branch == "辰"
-    assert decadal_surpalaces.opposite.name == "官禄"
-    assert decadal_surpalaces.opposite.heavenly_stem == "丙"
-    assert decadal_surpalaces.opposite.earthly_branch == "戌"
-    assert decadal_surpalaces.career.name == "福德"
-    assert decadal_surpalaces.career.heavenly_stem == "甲"
-    assert decadal_surpalaces.career.earthly_branch == "申"
-    assert decadal_surpalaces.wealth.name == "迁移"
-    assert decadal_surpalaces.wealth.heavenly_stem == "戊"
-    assert decadal_surpalaces.wealth.earthly_branch == "子"
+    decadal_surroundings = horoscope.surrounding_palaces("命宫", "decadal")
+    assert decadal_surroundings.target.name == "夫妻"
+    assert decadal_surroundings.target.heavenly_stem == "庚"
+    assert decadal_surroundings.target.earthly_branch == "辰"
+    assert decadal_surroundings.opposite.name == "官禄"
+    assert decadal_surroundings.opposite.heavenly_stem == "丙"
+    assert decadal_surroundings.opposite.earthly_branch == "戌"
+    assert decadal_surroundings.career.name == "福德"
+    assert decadal_surroundings.career.heavenly_stem == "甲"
+    assert decadal_surroundings.career.earthly_branch == "申"
+    assert decadal_surroundings.wealth.name == "迁移"
+    assert decadal_surroundings.wealth.heavenly_stem == "戊"
+    assert decadal_surroundings.wealth.earthly_branch == "子"
 
-    original_surpalaces = horoscope.surrounded_palaces("夫妻", "origin")
-    assert original_surpalaces.target.name == "夫妻"
-    assert original_surpalaces.target.heavenly_stem == "庚"
-    assert original_surpalaces.target.earthly_branch == "辰"
-    assert original_surpalaces.opposite.name == "官禄"
-    assert original_surpalaces.opposite.heavenly_stem == "丙"
-    assert original_surpalaces.opposite.earthly_branch == "戌"
-    assert original_surpalaces.career.name == "福德"
-    assert original_surpalaces.career.heavenly_stem == "甲"
-    assert original_surpalaces.career.earthly_branch == "申"
-    assert original_surpalaces.wealth.name == "迁移"
-    assert original_surpalaces.wealth.heavenly_stem == "戊"
-    assert original_surpalaces.wealth.earthly_branch == "子"
+    original_surroundings = horoscope.surrounding_palaces("夫妻", "origin")
+    assert original_surroundings.target.name == "夫妻"
+    assert original_surroundings.target.heavenly_stem == "庚"
+    assert original_surroundings.target.earthly_branch == "辰"
+    assert original_surroundings.opposite.name == "官禄"
+    assert original_surroundings.opposite.heavenly_stem == "丙"
+    assert original_surroundings.opposite.earthly_branch == "戌"
+    assert original_surroundings.career.name == "福德"
+    assert original_surroundings.career.heavenly_stem == "甲"
+    assert original_surroundings.career.earthly_branch == "申"
+    assert original_surroundings.wealth.name == "迁移"
+    assert original_surroundings.wealth.heavenly_stem == "戊"
+    assert original_surroundings.wealth.earthly_branch == "子"
 
     yearly_palace = horoscope.palace("命宫", "yearly")
     assert yearly_palace.name == "子女"
@@ -706,8 +706,8 @@ def test_by_solar_with_per_call_day_divide_current():
     assert astrolabe.five_elements_class == "土五局"
     assert astrolabe.palace("命宫").index == 7
     assert astrolabe.palace("命宫").is_empty() is True
-    assert astrolabe.palace("命宫").contains_stars(["火星", "天钺"]) is True
-    assert astrolabe.palace("迁移").contains_stars(["太阳", "天梁", "右弼", "八座", "天贵", "空亡", "天哭"]) is True
+    assert astrolabe.palace("命宫").has_stars(["火星", "天钺"]) is True
+    assert astrolabe.palace("迁移").has_stars(["太阳", "天梁", "右弼", "八座", "天贵", "空亡", "天哭"]) is True
 
 
 def test_by_lunar_with_exact_dividers():

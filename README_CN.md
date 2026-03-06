@@ -62,8 +62,12 @@ astrolabe = by_lunar("2023-2-20", time_index=4, gender="女", is_leap_month=True
 
 - `by_solar(solar_date, time_index, gender, *, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
 - `by_lunar(lunar_date, time_index, gender, *, is_leap_month=False, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
+- `with_options(*, date_value, time_index, gender, date_type="solar", is_leap_month=False, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
   - `plate`：`"sky"` | `"earth"` | `"human"`
   - `config`：单次调用配置（不会污染后续调用）
+- 插件接口：
+  - `load_plugin(plugin)` / `load_plugins([...])`
+  - `astrolabe.use(plugin)`
 - 常用辅助查询：
   - `get_zodiac_by_solar_date(..., language=..., config=...)`
   - `get_sign_by_solar_date(..., language=..., config=...)`
@@ -83,6 +87,35 @@ astrolabe = by_solar(
     plate="earth",  # "sky" | "earth" | "human"
     config={"algorithm": "zhongzhou"},
 )
+```
+
+### 统一入口（`with_options`）
+
+```python
+from izthon.astro import with_options
+
+astrolabe = with_options(
+    date_value="2023-10-18",
+    date_type="lunar",
+    time_index=4,
+    gender="female",
+)
+```
+
+### 插件
+
+```python
+from izthon.astro import by_solar, load_plugin
+
+
+def add_five_elements(self):
+    self.five_elements = lambda: self.five_elements_class
+
+
+load_plugin(add_five_elements)
+
+astrolabe = by_solar("2023-10-18", 4, "female")
+print(astrolabe.five_elements())
 ```
 
 ### 常用辅助接口（生肖/星座/命宫主星等）
@@ -113,7 +146,7 @@ print(get_major_star_by_lunar_date("2023-2-17", 0, is_leap_month=True))       # 
 - `FunctionalPalace`：12 宫位，通过 `astrolabe.palace(...)` 获取
 - `FunctionalStar`：星曜对象，通过 `astrolabe.star(...)` 或 `palace.major_stars` 等访问
 - `FunctionalHoroscope`：运限视图，通过 `astrolabe.horoscope(...)` 获取
-- `FunctionalSurpalaces`：三方四正，通过 `astrolabe.surrounded_palaces(...)` 获取
+- `FunctionalSurroundingPalaces`：三方四正，通过 `astrolabe.surrounding_palaces(...)` 获取
 
 ### 查询宫位 / 星曜 / 三方四正
 
@@ -129,10 +162,10 @@ print([s.name for s in ming.major_stars])
 ziwei = astrolabe.star("紫微")
 print(ziwei.palace().name)
 
-sur = astrolabe.surrounded_palaces("命宫")
-print(sur.opposite.name, sur.wealth.name, sur.career.name)
-print(sur.contains_stars(["武曲", "贪狼"]))         # 是否全部包含
-print(sur.contains_any_star(["太阳", "文曲"]))  # 是否命中其一
+surroundings = astrolabe.surrounding_palaces("命宫")
+print(surroundings.opposite.name, surroundings.wealth.name, surroundings.career.name)
+print(surroundings.has_stars(["武曲", "贪狼"]))         # 是否全部包含
+print(surroundings.has_any_star(["太阳", "文曲"]))  # 是否命中其一
 ```
 
 ### 运限（大限/流年/流月/流日/流时）

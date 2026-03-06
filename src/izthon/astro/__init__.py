@@ -3,12 +3,19 @@ from __future__ import annotations
 import importlib
 
 from ._config import get_config, reset_config, set_config
+from .plugin import Plugin, get_plugins, load_plugin, load_plugins, reset_plugins
 
 __all__ = [
     # config
     "set_config",
     "get_config",
     "reset_config",
+    # plugins
+    "Plugin",
+    "load_plugin",
+    "load_plugins",
+    "get_plugins",
+    "reset_plugins",
     # palace core
     "get_soul_and_body",
     "get_five_elements_class",
@@ -17,6 +24,7 @@ __all__ = [
     # main API
     "by_solar",
     "by_lunar",
+    "with_options",
     "rearrange_astrolabe",
     "get_zodiac_by_solar_date",
     "get_sign_by_solar_date",
@@ -26,7 +34,7 @@ __all__ = [
     # functional models
     "FunctionalAstrolabe",
     "FunctionalPalace",
-    "FunctionalSurpalaces",
+    "FunctionalSurroundingPalaces",
     "FunctionalHoroscope",
 ]
 
@@ -39,6 +47,7 @@ _LAZY_ATTRS: dict[str, str] = {
     # main API
     "by_solar": "astro",
     "by_lunar": "astro",
+    "with_options": "astro",
     "rearrange_astrolabe": "astro",
     "get_zodiac_by_solar_date": "astro",
     "get_sign_by_solar_date": "astro",
@@ -48,7 +57,7 @@ _LAZY_ATTRS: dict[str, str] = {
     # functional models
     "FunctionalAstrolabe": "functional_astrolabe",
     "FunctionalPalace": "functional_palace",
-    "FunctionalSurpalaces": "functional_surpalaces",
+    "FunctionalSurroundingPalaces": "functional_surrounding_palaces",
     "FunctionalHoroscope": "functional_horoscope",
 }
 

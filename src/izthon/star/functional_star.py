@@ -8,7 +8,7 @@ from ..i18n import kot
 if TYPE_CHECKING:
     from ..astro.functional_astrolabe import FunctionalAstrolabe
     from ..astro.functional_palace import FunctionalPalace
-    from ..astro.functional_surpalaces import FunctionalSurpalaces
+    from ..astro.functional_surrounding_palaces import FunctionalSurroundingPalaces
 
 
 StarType = Literal["major", "soft", "tough", "lucun", "tianma", "flower", "helper", "adjective"]
@@ -35,13 +35,13 @@ class FunctionalStar:
     def palace(self) -> "FunctionalPalace | None":
         return self._palace
 
-    def surrounded_palaces(self) -> "FunctionalSurpalaces | None":
+    def surrounding_palaces(self) -> "FunctionalSurroundingPalaces | None":
         if not self._palace or not self._astrolabe:
             return None
-        return self._astrolabe.surrounded_palaces(self._palace.name)
+        return self._astrolabe.surrounding_palaces(self._palace.name)
 
     def opposite_palace(self) -> "FunctionalPalace | None":
-        sp = self.surrounded_palaces()
+        sp = self.surrounding_palaces()
         return sp.opposite if sp else None
 
     def with_mutagen(self, mutagen: str | list[str]) -> bool:
@@ -57,4 +57,3 @@ class FunctionalStar:
         if isinstance(brightness, list):
             return any(kot(b) == kot(self.brightness) for b in brightness)
         return kot(brightness) == kot(self.brightness)
-

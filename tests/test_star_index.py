@@ -10,7 +10,7 @@ from izthon.star import (
     get_changsheng_12_start_index,
     get_changsheng_12,
     get_horoscope_star,
-    get_jiangqian12_start_index,
+    get_jiangqian_12_start_index,
     get_major_star,
     get_minor_star,
     get_start_index,
@@ -206,8 +206,8 @@ def test_get_boshi_12():
 
 def test_get_yearly_12():
     assert get_yearly_12("2025-8-15") == {
-        "suiqian12": ["天德", "吊客", "病符", "岁建", "晦气", "丧门", "贯索", "官符", "小耗", "大耗", "龙德", "白虎"],
-        "jiangqian12": ["劫煞", "灾煞", "天煞", "指背", "咸池", "月煞", "亡神", "将星", "攀鞍", "岁驿", "息神", "华盖"],
+        "suiqian_12": ["天德", "吊客", "病符", "岁建", "晦气", "丧门", "贯索", "官符", "小耗", "大耗", "龙德", "白虎"],
+        "jiangqian_12": ["劫煞", "灾煞", "天煞", "指背", "咸池", "月煞", "亡神", "将星", "攀鞍", "岁驿", "息神", "华盖"],
     }
 
 
@@ -273,7 +273,7 @@ def test_get_changsheng_12_start_index():
         assert get_changsheng_12_start_index(k) == v
 
 
-def test_get_jiangqian12_start_index():
+def test_get_jiangqian_12_start_index():
     cases = {
         "yin": 4,
         "woo": 4,
@@ -289,7 +289,7 @@ def test_get_jiangqian12_start_index():
         "wei": 1,
     }
     for k, v in cases.items():
-        assert get_jiangqian12_start_index(k) == v
+        assert get_jiangqian_12_start_index(k) == v
 
 
 def test_get_adjective_star_algorithm_switch():

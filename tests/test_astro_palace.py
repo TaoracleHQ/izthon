@@ -98,24 +98,24 @@ def test_palace_mutagen_and_flying_helpers():
     astrolabe = by_solar("2017-12-4", 12, "male")
 
     assert astrolabe.palace("命宫").flies_to("兄弟", "忌") is True
-    assert astrolabe.palace("命宫").not_fly_to("兄弟", "科") is True
+    assert astrolabe.palace("命宫").does_not_fly_to("兄弟", "科") is True
     assert astrolabe.palace("田宅").flies_to("福德", ["禄", "科"]) is True
-    assert astrolabe.palace("田宅").not_fly_to("福德", ["禄", "科"]) is False
+    assert astrolabe.palace("田宅").does_not_fly_to("福德", ["禄", "科"]) is False
     assert astrolabe.palace("兄弟").flies_to("夫妻", ["权", "科"]) is False
     assert astrolabe.palace("兄弟").flies_one_of_to("夫妻", ["权", "科"]) is True
     assert astrolabe.palace("兄弟").flies_one_of_to("夫妻", ["权", "禄"]) is False
-    assert astrolabe.palace("兄弟").not_fly_to("夫妻", ["权", "科"]) is False
+    assert astrolabe.palace("兄弟").does_not_fly_to("夫妻", ["权", "科"]) is False
 
-    assert astrolabe.palace("仆役").self_mutaged("科") is True
-    assert astrolabe.palace("仆役").self_mutaged(["科", "权"]) is False
-    assert astrolabe.palace("仆役").self_mutaged_one_of(["科", "权"]) is True
-    assert astrolabe.palace("仆役").self_mutaged_one_of() is True
-    assert astrolabe.palace("仆役").self_mutaged("权") is False
-    assert astrolabe.palace("仆役").not_self_mutaged() is False
-    assert astrolabe.palace("仆役").not_self_mutaged("权") is True
-    assert astrolabe.palace("仆役").not_self_mutaged(["权", "科"]) is False
+    assert astrolabe.palace("仆役").has_self_mutagen("科") is True
+    assert astrolabe.palace("仆役").has_self_mutagen(["科", "权"]) is False
+    assert astrolabe.palace("仆役").has_any_self_mutagen(["科", "权"]) is True
+    assert astrolabe.palace("仆役").has_any_self_mutagen() is True
+    assert astrolabe.palace("仆役").has_self_mutagen("权") is False
+    assert astrolabe.palace("仆役").lacks_self_mutagen() is False
+    assert astrolabe.palace("仆役").lacks_self_mutagen("权") is True
+    assert astrolabe.palace("仆役").lacks_self_mutagen(["权", "科"]) is False
 
-    palaces = astrolabe.palace("命宫").mutaged_places()
+    palaces = astrolabe.palace("命宫").mutagen_palaces()
     assert len(palaces) == 4
     assert palaces[0].name == "命宫"
     assert palaces[1].name == "迁移"

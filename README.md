@@ -62,8 +62,12 @@ Entry points:
 
 - `by_solar(solar_date, time_index, gender, *, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
 - `by_lunar(lunar_date, time_index, gender, *, is_leap_month=False, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
+- `with_options(*, date_value, time_index, gender, date_type="solar", is_leap_month=False, fix_leap=True, language="zh-CN", config=None, plate="sky") -> FunctionalAstrolabe`
   - `plate`: `"sky"` | `"earth"` | `"human"`
   - `config`: per-call config patch (no cross-call leakage)
+- Plugins:
+  - `load_plugin(plugin)` / `load_plugins([...])`
+  - `astrolabe.use(plugin)`
 - Helpers:
   - `get_zodiac_by_solar_date(..., language=..., config=...)`
   - `get_sign_by_solar_date(..., language=..., config=...)`
@@ -83,6 +87,35 @@ astrolabe = by_solar(
     plate="earth",  # "sky" | "earth" | "human"
     config={"algorithm": "zhongzhou"},
 )
+```
+
+### Unified Entry (`with_options`)
+
+```python
+from izthon.astro import with_options
+
+astrolabe = with_options(
+    date_value="2023-10-18",
+    date_type="lunar",
+    time_index=4,
+    gender="female",
+)
+```
+
+### Plugins
+
+```python
+from izthon.astro import by_solar, load_plugin
+
+
+def add_five_elements(self):
+    self.five_elements = lambda: self.five_elements_class
+
+
+load_plugin(add_five_elements)
+
+astrolabe = by_solar("2023-10-18", 4, "female")
+print(astrolabe.five_elements())
 ```
 
 ### Helper APIs (sign/zodiac/major stars)
@@ -113,7 +146,7 @@ All main APIs live in `izthon.astro`.
 - `FunctionalPalace`: 12 palaces, accessed via `astrolabe.palace(...)`.
 - `FunctionalStar`: stars in each palace; accessed via `astrolabe.star(...)` or `palace.major_stars` etc.
 - `FunctionalHoroscope`: luck-cycle view for a given target date (`astrolabe.horoscope(...)`).
-- `FunctionalSurpalaces`: surrounded palaces (三方四正), accessed via `astrolabe.surrounded_palaces(...)`.
+- `FunctionalSurroundingPalaces`: surrounded palaces (三方四正), accessed via `astrolabe.surrounding_palaces(...)`.
 
 ### Query Palaces / Stars
 
@@ -127,10 +160,10 @@ print([s.name for s in ming.major_stars])
 ziwei = astrolabe.star("紫微")
 print(ziwei.palace().name)
 
-sur = astrolabe.surrounded_palaces("命宫")
-print(sur.opposite.name, sur.wealth.name, sur.career.name)
-print(sur.contains_stars(["武曲", "贪狼"]))  # all included?
-print(sur.contains_any_star(["太阳", "文曲"]))  # any included?
+surroundings = astrolabe.surrounding_palaces("命宫")
+print(surroundings.opposite.name, surroundings.wealth.name, surroundings.career.name)
+print(surroundings.has_stars(["武曲", "贪狼"]))  # all included?
+print(surroundings.has_any_star(["太阳", "文曲"]))  # any included?
 ```
 
 ### Horoscope (Decadal/Yearly/Monthly/Daily/Hourly)

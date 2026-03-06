@@ -71,9 +71,9 @@
 
 - `FunctionalStar`：name/type/scope/brightness/mutagen + palace/astrolabe 关联方法 + 查询方法（`with_brightness/with_mutagen`）。
 - `FunctionalPalace`：宫位字段 + `has/not_have/has_one_of` + 四化飞化/自化相关方法。
-- `FunctionalSurpalaces`：target/opposite/wealth/career + `have/not_have/have_one_of`。
-- `FunctionalHoroscope`：各运限 scope 数据 + 查询方法（`palace/surround_palaces/has_horoscope_stars/has_horoscope_mutagen`）。
-- `FunctionalAstrolabe`：星盘主对象 + `horoscope()` + `palace()` + `star()` + `surrounded_palaces()` + 插件 `use()`。
+- `FunctionalSurroundingPalaces`：target/opposite/wealth/career + `have/not_have/have_one_of`。
+- `FunctionalHoroscope`：各运限 scope 数据 + 查询方法（`palace/surrounding_palaces/has_horoscope_stars/has_horoscope_mutagen`）。
+- `FunctionalAstrolabe`：星盘主对象 + `horoscope()` + `palace()` + `star()` + `surrounding_palaces()` + 插件 `use()`。
 
 原则：数据结构与行为对齐 TS；内部实现保持可测试、可拆分。
 
@@ -214,17 +214,17 @@
 - `by_solar/by_lunar/with_options`：排盘入口。
 - `FunctionalAstrolabe`：
   - `star()`：跨语言星名查找（依赖 `kot`）。
-  - `palace()` / `surrounded_palaces()`：依赖 analyzer。
+  - `palace()` / `surrounding_palaces()`：依赖 analyzer。
   - `horoscope()`：复刻 `_get_horoscope_by_solar_date`（大限/小限/流年/月/日/时索引、闰月/生日分界、流耀/四化）。
 - `FunctionalPalace`：
   - `has/not_have/has_one_of`
   - `has_mutagen/not_have_mutagen`
   - `flies_to/not_fly_to/flies_one_of_to`
-  - `self_mutaged/self_mutaged_one_of/not_self_mutaged`
-  - `mutaged_places`
+  - `has_self_mutagen/has_self_mutagen_one_of/not_has_self_mutagen`
+  - `mutagen_palaces`
 - `FunctionalHoroscope`：
-  - `palace/surround_palaces/has_horoscope_stars/has_horoscope_mutagen`。
-- `FunctionalSurpalaces` 与 `analyzer`（三方四正、星曜包含判断、四化反查）。
+  - `palace/surrounding_palaces/has_horoscope_stars/has_horoscope_mutagen`。
+- `FunctionalSurroundingPalaces` 与 `analyzer`（三方四正、星曜包含判断、四化反查）。
 
 验收：移植 iztro 的 `src/__tests__/astro/*.test.ts`（含多语言、插件、重排、中州派用例）。
 

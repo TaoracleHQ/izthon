@@ -16,9 +16,10 @@ from .functional_horoscope import (
     FunctionalHoroscope,
     Horoscope,
     HoroscopeItem,
-    YearlyDecStar,
+    YearlyCycleStars,
     YearlyHoroscopeItem,
 )
+from .plugin import Plugin, apply_plugin
 from .palace import get_palace_names
 
 
@@ -161,7 +162,7 @@ def _get_horoscope_by_solar_date(
             palace_names=get_palace_names(yearly_index),
             mutagen=get_mutagens_by_heavenly_stem(yearly[0]),
             stars=get_horoscope_star(yearly[0], yearly[1], "yearly"),
-            yearly_dec_star=YearlyDecStar(**get_yearly_12(target_date)),
+            yearly_cycle_stars=YearlyCycleStars(**get_yearly_12(target_date)),
         ),
         monthly=HoroscopeItem(
             index=monthly_index,
@@ -215,6 +216,7 @@ class FunctionalAstrolabe:
     copyright: str
     runtime_language: str = "zh-CN"
     runtime_config: dict[str, Any] = field(default_factory=dict, repr=False)
+    _plugins: list[Plugin] = field(default_factory=list, repr=False)
 
     def star(self, star_name: str):
         target = None
@@ -238,12 +240,17 @@ class FunctionalAstrolabe:
     def palace(self, index_or_name: int | str) -> "FunctionalPalace":
         return analyzer.get_palace(self, index_or_name)
 
-    def surrounded_palaces(self, index_or_name: int | str) -> "FunctionalSurpalaces":
-        return analyzer.get_surrounded_palaces(self, index_or_name)
+    def surrounding_palaces(self, index_or_name: int | str) -> "FunctionalSurroundingPalaces":
+        return analyzer.get_surrounding_palaces(self, index_or_name)
+
+    def use(self, plugin: Plugin) -> "FunctionalAstrolabe":
+        self._plugins.append(plugin)
+        apply_plugin(self, plugin)
+        return self
 
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
     from .functional_palace import FunctionalPalace
-    from .functional_surpalaces import FunctionalSurpalaces
+    from .functional_surrounding_palaces import FunctionalSurroundingPalaces

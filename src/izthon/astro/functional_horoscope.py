@@ -28,14 +28,14 @@ class AgeHoroscopeItem(HoroscopeItem):
 
 
 @dataclass(frozen=True)
-class YearlyDecStar:
-    jiangqian12: list[str]
-    suiqian12: list[str]
+class YearlyCycleStars:
+    jiangqian_12: list[str]
+    suiqian_12: list[str]
 
 
 @dataclass(frozen=True)
 class YearlyHoroscopeItem(HoroscopeItem):
-    yearly_dec_star: YearlyDecStar | None = None
+    yearly_cycle_stars: YearlyCycleStars | None = None
 
 
 @dataclass(frozen=True)
@@ -111,14 +111,14 @@ class FunctionalHoroscope:
             raise ValueError("invalid palace name.") from exc
         return self.astrolabe.palace(idx)
 
-    def surrounded_palaces(self, palace_name: str, scope: Scope):
+    def surrounding_palaces(self, palace_name: str, scope: Scope):
         if scope == "origin":
-            return self.astrolabe.surrounded_palaces(palace_name)
+            return self.astrolabe.surrounding_palaces(palace_name)
         try:
             idx = getattr(self.data, scope).palace_names.index(palace_name)
         except ValueError as exc:
             raise ValueError("invalid palace name.") from exc
-        return self.astrolabe.surrounded_palaces(idx)
+        return self.astrolabe.surrounding_palaces(idx)
 
     def has_horoscope_stars(self, palace_name: str, scope: Scope, horoscope_star: list[str]) -> bool:
         if not self.decadal.stars or not self.yearly.stars:
@@ -133,7 +133,7 @@ class FunctionalHoroscope:
         target_keys = [kot(s) for s in horoscope_star]
         return all(key in star_keys for key in target_keys)
 
-    def not_have_horoscope_stars(self, palace_name: str, scope: Scope, horoscope_star: list[str]) -> bool:
+    def lacks_horoscope_stars(self, palace_name: str, scope: Scope, horoscope_star: list[str]) -> bool:
         if not self.decadal.stars or not self.yearly.stars:
             return False
 
@@ -146,7 +146,7 @@ class FunctionalHoroscope:
         target_keys = [kot(s) for s in horoscope_star]
         return all(key not in star_keys for key in target_keys)
 
-    def has_one_of_horoscope_stars(self, palace_name: str, scope: Scope, horoscope_star: list[str]) -> bool:
+    def has_any_horoscope_star(self, palace_name: str, scope: Scope, horoscope_star: list[str]) -> bool:
         if not self.decadal.stars or not self.yearly.stars:
             return False
 

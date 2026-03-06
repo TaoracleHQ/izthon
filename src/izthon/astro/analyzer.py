@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from ..star.functional_star import FunctionalStar
     from .functional_astrolabe import FunctionalAstrolabe
     from .functional_palace import FunctionalPalace
-    from .functional_surpalaces import FunctionalSurpalaces
+    from .functional_surrounding_palaces import FunctionalSurroundingPalaces
 
 
 def _concat_star_keys(*stars: Iterable["FunctionalStar"]) -> list[str]:
@@ -41,16 +41,16 @@ def _include_mutagen(stars: Iterable["FunctionalStar"], mutagen: str) -> bool:
     return False
 
 
-def get_surrounded_palaces(astrolabe: "FunctionalAstrolabe", index_or_name: int | str) -> "FunctionalSurpalaces":
+def get_surrounding_palaces(astrolabe: "FunctionalAstrolabe", index_or_name: int | str) -> "FunctionalSurroundingPalaces":
     palace = get_palace(astrolabe, index_or_name)
     palace_index = fix_earthly_branch_index(palace.earthly_branch)
     opposite = get_palace(astrolabe, fix_index(palace_index + 6))
     career = get_palace(astrolabe, fix_index(palace_index + 4))
     wealth = get_palace(astrolabe, fix_index(palace_index + 8))
 
-    from .functional_surpalaces import FunctionalSurpalaces
+    from .functional_surrounding_palaces import FunctionalSurroundingPalaces
 
-    return FunctionalSurpalaces(target=palace, opposite=opposite, wealth=wealth, career=career)
+    return FunctionalSurroundingPalaces(target=palace, opposite=opposite, wealth=wealth, career=career)
 
 
 def get_palace(astrolabe: "FunctionalAstrolabe", index_or_name: int | str) -> "FunctionalPalace":
@@ -102,7 +102,7 @@ def not_have_mutagen_in_palace(palace: "FunctionalPalace", mutagen: str) -> bool
     return not has_mutagen_in_palace(palace, mutagen)
 
 
-def is_surrounded_by_stars(surpalaces: "FunctionalSurpalaces", stars: list[str]) -> bool:
+def is_surrounded_by_stars(surpalaces: "FunctionalSurroundingPalaces", stars: list[str]) -> bool:
     all_keys = _concat_star_keys(
         *surpalaces.target.major_stars,
         *surpalaces.target.minor_stars,
@@ -120,7 +120,7 @@ def is_surrounded_by_stars(surpalaces: "FunctionalSurpalaces", stars: list[str])
     return _include_all(all_keys, stars)
 
 
-def not_surrounded_by_stars(surpalaces: "FunctionalSurpalaces", stars: list[str]) -> bool:
+def not_surrounded_by_stars(surpalaces: "FunctionalSurroundingPalaces", stars: list[str]) -> bool:
     all_keys = _concat_star_keys(
         *surpalaces.target.major_stars,
         *surpalaces.target.minor_stars,
@@ -138,7 +138,7 @@ def not_surrounded_by_stars(surpalaces: "FunctionalSurpalaces", stars: list[str]
     return _exclude_all(all_keys, stars)
 
 
-def is_surrounded_by_one_of_stars(surpalaces: "FunctionalSurpalaces", stars: list[str]) -> bool:
+def is_surrounded_by_one_of_stars(surpalaces: "FunctionalSurroundingPalaces", stars: list[str]) -> bool:
     all_keys = _concat_star_keys(
         *surpalaces.target.major_stars,
         *surpalaces.target.minor_stars,

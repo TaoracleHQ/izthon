@@ -64,14 +64,14 @@ def get_changsheng_12(param: dict) -> list[str]:
     )
 
     start_idx = get_changsheng_12_start_index(five_elements_class)
-    changsheng12: list[str] = [""] * 12
+    changsheng_12: list[str] = [""] * 12
 
     same_yinyang = GENDER[gender_key] == earthly_branches[earthly_branch_of_year_key]["yin_yang"]
     for i, key in enumerate(stars):
         idx = fix_index(i + start_idx) if same_yinyang else fix_index(start_idx - i)
-        changsheng12[idx] = t(key)
+        changsheng_12[idx] = t(key)
 
-    return changsheng12
+    return changsheng_12
 
 
 def get_boshi_12(solar_date: str, gender: str) -> list[str]:
@@ -111,7 +111,7 @@ def get_boshi_12(solar_date: str, gender: str) -> list[str]:
     return boshi12
 
 
-def get_jiangqian12_start_index(earthly_branch_name: str) -> int:
+def get_jiangqian_12_start_index(earthly_branch_name: str) -> int:
     earthly_branch_key = kot(earthly_branch_name, "Earthly")
 
     if earthly_branch_key in {"yinEarthly", "wuEarthly", "xuEarthly"}:
@@ -135,8 +135,8 @@ def get_yearly_12(solar_date: str | object) -> dict[str, list[str]]:
     ).yearly
 
     algorithm = cfg["algorithm"]
-    suiqian12: list[str] = [""] * 12
-    jiangqian12: list[str] = [""] * 12
+    suiqian_12: list[str] = [""] * 12
+    jiangqian_12: list[str] = [""] * 12
 
     ts12shen = (
         (
@@ -172,7 +172,7 @@ def get_yearly_12(solar_date: str | object) -> dict[str, list[str]]:
 
     for i, key in enumerate(ts12shen):
         idx = fix_index(fix_earthly_branch_index(yearly[1]) + i)
-        suiqian12[idx] = t(key)
+        suiqian_12[idx] = t(key)
 
     jq12shen = (
         "jiangxing",
@@ -188,9 +188,9 @@ def get_yearly_12(solar_date: str | object) -> dict[str, list[str]]:
         "yuesha",
         "wangshen",
     )
-    jq_start = get_jiangqian12_start_index(yearly[1])
+    jq_start = get_jiangqian_12_start_index(yearly[1])
     for i, key in enumerate(jq12shen):
         idx = fix_index(jq_start + i)
-        jiangqian12[idx] = t(key)
+        jiangqian_12[idx] = t(key)
 
-    return {"suiqian12": suiqian12, "jiangqian12": jiangqian12}
+    return {"suiqian_12": suiqian_12, "jiangqian_12": jiangqian_12}

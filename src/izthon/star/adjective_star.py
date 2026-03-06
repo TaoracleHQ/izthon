@@ -38,7 +38,7 @@ def get_adjective_star(param: AstrolabeParam) -> list[list[FunctionalStar]]:
     luan_xi = get_luan_xi_index(yearly[1])
 
     yearly12 = get_yearly_12(solar_date)
-    suiqian12 = yearly12["suiqian12"]
+    suiqian_12 = yearly12["suiqian_12"]
 
     stars[luan_xi["hongluan_index"]].append(FunctionalStar(name=t("hongluan"), type="flower", scope="origin"))
     stars[luan_xi["tianxi_index"]].append(FunctionalStar(name=t("tianxi"), type="flower", scope="origin"))
@@ -75,7 +75,7 @@ def get_adjective_star(param: AstrolabeParam) -> list[list[FunctionalStar]]:
         )
     else:
         try:
-            idx = suiqian12.index(t(kot("longde")))
+            idx = suiqian_12.index(t(kot("longde")))
         except ValueError:
             idx = -1
         if idx != -1:
@@ -101,4 +101,3 @@ def get_adjective_star(param: AstrolabeParam) -> list[list[FunctionalStar]]:
     stars[yearly_index["nianjie_index"]].append(FunctionalStar(name=t("nianjie"), type="helper", scope="origin"))
 
     return stars
-
